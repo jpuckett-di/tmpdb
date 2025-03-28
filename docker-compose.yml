@@ -5,7 +5,7 @@ services:
     image: mysql:8.0
     volumes:
       - db:/var/lib/mysql
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_520_ci --default-authentication-plugin=mysql_native_password
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --local-infile=1 --default-authentication-plugin=mysql_native_password
     restart: unless-stopped
     ports:
       - ${DB_PORT:-3306}:3306
