@@ -230,8 +230,8 @@ run_tests() {
     # Test for auto-increment ID with proper comma placement
     run_test "Auto-increment ID comma placement" "$SCRIPT_PATH -a -n $TEST_DIR/auto_id_test.csv" 0 "PRIMARY KEY,"
 
-    # Test for auto-increment ID with recreate option
-    run_test "Auto-increment ID with recreate" "$SCRIPT_PATH -a -r -n $TEST_DIR/auto_id_test.csv" 0 "DROP TABLE IF EXISTS auto_id_test"
+    # Test for auto-increment ID with DROP TABLE statement
+    run_test "Auto-increment ID with DROP TABLE" "$SCRIPT_PATH -a -n $TEST_DIR/auto_id_test.csv" 0 "DROP TABLE IF EXISTS auto_id_test"
 
     # Test for auto-increment ID with interactive mode
     run_test "Auto-increment ID with interactive" "echo 'd' | $SCRIPT_PATH -a -i -n $TEST_DIR/auto_id_test.csv" 0 "id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY"

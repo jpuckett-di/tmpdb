@@ -4,10 +4,9 @@ set -e
 
 # Function to display usage information
 show_usage() {
-    echo "Usage: $0 [-i] [-r] [-a] [-n] <csv_file>"
+    echo "Usage: $0 [-i] [-a] [-n] <csv_file>"
     echo "Options:"
     echo "  -i    Interactive mode: Allows customizing column data types and constraints"
-    echo "  -r    Recreate table: Drop the table first if it exists"
     echo "  -a    Add auto-increment ID: Adds an 'id' column as an unsigned int primary key"
     echo "  -n    Dry run: Only generate SQL, don't import data"
     exit 1
@@ -15,13 +14,11 @@ show_usage() {
 
 # Parse command line options
 INTERACTIVE=false
-RECREATE=false
 ADD_AUTO_ID=false
 DRY_RUN=false
-while getopts "iran" opt; do
+while getopts "ian" opt; do
     case $opt in
         i) INTERACTIVE=true ;;
-        r) RECREATE=true ;;
         a) ADD_AUTO_ID=true ;;
         n) DRY_RUN=true ;;
         *) show_usage ;;
@@ -283,11 +280,9 @@ generate_create_table_sql() {
     # Start with USE statement
     local sql="USE $db_name;\n\n"
 
-    # Add DROP TABLE statement if recreate option is enabled
-    if [ "$RECREATE" = true ]; then
-        sql="${sql}DROP TABLE IF EXISTS $table_name;\n\n"
-        echo "Including DROP TABLE IF EXISTS statement"
-    fi
+    # Always add DROP TABLE statement
+    sql="${sql}DROP TABLE IF EXISTS $table_name;\n\n"
+    echo "Including DROP TABLE IF EXISTS statement"
 
     # Add the CREATE TABLE statement
     sql="${sql}CREATE TABLE $table_name (\n"
