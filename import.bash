@@ -291,7 +291,6 @@ generate_create_table_sql() {
 
     # Always add DROP TABLE statement
     sql="${sql}DROP TABLE IF EXISTS $table_name;\n\n"
-    echo "Including DROP TABLE IF EXISTS statement"
 
     # Add the CREATE TABLE statement
     sql="${sql}CREATE TABLE $table_name (\n"
