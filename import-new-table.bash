@@ -336,11 +336,9 @@ generate_create_table_sql() {
     # Print the SQL command
     echo -e "$sql"
 
-    # Get the directory of the CSV file
-    local csv_dir=$(dirname "$csv_file")
-    # Save to a file in the same directory as the CSV
-    echo -e "$sql" > "${csv_dir}/${raw_table_name}_create_table.sql"
-    echo "SQL command saved to ${csv_dir}/${raw_table_name}_create_table.sql"
+    # Store the SQL for later use if needed for database import
+    CREATE_TABLE_SQL="$sql"
+    TABLE_NAME="$table_name"
 }
 
 # If interactive mode is enabled, define column properties
@@ -354,8 +352,8 @@ generate_create_table_sql "$1"
 # Function to import data into the database
 import_data_to_db() {
     local csv_file="$1"
-    local sql_file="$2"
-    local table_name="$3"
+    local table_name="$2"
+    local sql="$3"
     local db_service="db"  # Default service name in docker-compose.yml
 
     echo "Importing data to database..."
@@ -374,10 +372,10 @@ import_data_to_db() {
         return 1
     fi
 
-    # Create the table using the SQL script
-    echo "Creating table using SQL script: $sql_file"
-    if ! docker compose exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db < "$sql_file"; then
-        echo "Error: Failed to create table using SQL script"
+    # Create the table using the SQL
+    echo "Creating table using SQL command"
+    if ! echo -e "$sql" | docker compose exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db; then
+        echo "Error: Failed to create table using SQL command"
         return 1
     fi
 
@@ -447,28 +445,7 @@ IGNORE 1 ROWS
 
 # At the end of the script, after generating the SQL
 if [ "$DB_IMPORT" = true ]; then
-    # Get the directory of the CSV file and the raw table name
-    csv_file="$1"
-    raw_table_name=$(basename "$csv_file" .csv)
-
-    # Determine table name - use custom name if provided in interactive mode
-    if [ "$INTERACTIVE" = true ] && [ -n "$CUSTOM_TABLE_NAME" ]; then
-        table_name="$CUSTOM_TABLE_NAME"
-    else
-        # Sanitize table name (replace spaces and hyphens with underscores and remove other special characters)
-        table_name=$(echo "$raw_table_name" | tr ' -' '_' | tr -cd '[:alnum:]_')
-
-        # If table name doesn't start with a letter or underscore, prepend 't_'
-        if [[ ! $table_name =~ ^[a-zA-Z_] ]]; then
-            table_name="t_$table_name"
-        fi
-    fi
-
-    # Get the directory and SQL file path
-    csv_dir=$(dirname "$csv_file")
-    sql_file="${csv_dir}/${raw_table_name}_create_table.sql"
-
-    # Import the data to the database
-    import_data_to_db "$csv_file" "$sql_file" "$table_name"
+    # Import the data to the database using the stored SQL
+    import_data_to_db "$1" "$TABLE_NAME" "$CREATE_TABLE_SQL"
 fi
 

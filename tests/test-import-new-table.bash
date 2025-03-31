@@ -179,8 +179,8 @@ run_tests() {
     # Test 9: SQL generation with valid column names
     run_test "SQL generation - valid columns" "$SCRIPT_PATH $TEST_DIR/valid.csv" 0 "CREATE TABLE valid"
 
-    # Test 10: Check SQL file creation
-    run_test "SQL file creation" "bash -c '$SCRIPT_PATH $TEST_DIR/valid.csv && [ -f \"$TEST_DIR/valid_create_table.sql\" ]'" 0 ""
+    # Test 10: Check SQL output is displayed
+    run_test "SQL output display" "$SCRIPT_PATH $TEST_DIR/valid.csv" 0 "CREATE TABLE valid"
 
     # Test 11: SQL generation with special characters in column names
     run_test "SQL generation - special chars in columns" "$SCRIPT_PATH $TEST_DIR/special_chars.csv" 0 "first_name TEXT"
@@ -221,8 +221,8 @@ run_tests() {
     # Test 22: Verify pre-population message appears when using defaults
     run_test "Interactive - pre-population message" "cat $TEST_DIR/input_defaults.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv" 0 "Pre-populating remaining columns with defaults"
 
-    # Test 23: Check SQL file is created in interactive mode
-    run_test "Interactive - SQL file creation" "bash -c 'cat $TEST_DIR/input_defaults.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv && [ -f \"$TEST_DIR/valid_create_table.sql\" ]'" 0 ""
+    # Test 23: Check command runs successfully in interactive mode
+    run_test "Interactive - command success" "cat $TEST_DIR/input_defaults.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv" 0 ""
 
     # Test for auto-increment ID option
     run_test "Auto-increment ID option" "$SCRIPT_PATH -a $TEST_DIR/auto_id_test.csv" 0 "id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY"
