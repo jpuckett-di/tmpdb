@@ -156,85 +156,88 @@ run_tests() {
     run_test "No arguments" "$SCRIPT_PATH" 1 "No CSV file provided"
 
     # Test 2: Non-existent file
-    run_test "Non-existent file" "$SCRIPT_PATH $TEST_DIR/nonexistent.csv" 1 "not found"
+    run_test "Non-existent file" "$SCRIPT_PATH -n $TEST_DIR/nonexistent.csv" 1 "not found"
 
     # Test 3: Non-CSV file
-    run_test "Non-CSV file" "$SCRIPT_PATH $TEST_DIR/not_csv.txt" 1 "not a CSV file"
+    run_test "Non-CSV file" "$SCRIPT_PATH -n $TEST_DIR/not_csv.txt" 1 "not a CSV file"
 
     # Test 4: Unreadable file
-    run_test "Unreadable file" "$SCRIPT_PATH $TEST_DIR/unreadable.csv" 1 "Cannot read file"
+    run_test "Unreadable file" "$SCRIPT_PATH -n $TEST_DIR/unreadable.csv" 1 "Cannot read file"
 
     # Test 5: Empty CSV file
-    run_test "Empty CSV file" "$SCRIPT_PATH $TEST_DIR/empty.csv" 0 "Total columns: 0"
+    run_test "Empty CSV file" "$SCRIPT_PATH -n $TEST_DIR/empty.csv" 0 "Total columns: 0"
 
     # Test 6: Valid CSV file
-    run_test "Valid CSV file" "$SCRIPT_PATH $TEST_DIR/valid.csv" 0 "Columns detected:"
+    run_test "Valid CSV file" "$SCRIPT_PATH -n $TEST_DIR/valid.csv" 0 "Columns detected:"
 
     # Test 7: Check column detection
-    run_test "Column detection" "$SCRIPT_PATH $TEST_DIR/valid.csv" 0 "0: name"
+    run_test "Column detection" "$SCRIPT_PATH -n $TEST_DIR/valid.csv" 0 "0: name"
 
     # Test 8: Check total columns
-    run_test "Total columns" "$SCRIPT_PATH $TEST_DIR/valid.csv" 0 "Total columns: 4"
+    run_test "Total columns" "$SCRIPT_PATH -n $TEST_DIR/valid.csv" 0 "Total columns: 4"
 
     # Test 9: SQL generation with valid column names
-    run_test "SQL generation - valid columns" "$SCRIPT_PATH $TEST_DIR/valid.csv" 0 "CREATE TABLE valid"
+    run_test "SQL generation - valid columns" "$SCRIPT_PATH -n $TEST_DIR/valid.csv" 0 "CREATE TABLE valid"
 
     # Test 10: Check SQL output is displayed
-    run_test "SQL output display" "$SCRIPT_PATH $TEST_DIR/valid.csv" 0 "CREATE TABLE valid"
+    run_test "SQL output display" "$SCRIPT_PATH -n $TEST_DIR/valid.csv" 0 "CREATE TABLE valid"
 
     # Test 11: SQL generation with special characters in column names
-    run_test "SQL generation - special chars in columns" "$SCRIPT_PATH $TEST_DIR/special_chars.csv" 0 "first_name TEXT"
+    run_test "SQL generation - special chars in columns" "$SCRIPT_PATH -n $TEST_DIR/special_chars.csv" 0 "first_name TEXT"
 
     # Test 12: SQL generation with numeric filename (should prepend t_)
-    run_test "SQL generation - numeric filename" "$SCRIPT_PATH $TEST_DIR/123data.csv" 0 "CREATE TABLE t_123data"
+    run_test "SQL generation - numeric filename" "$SCRIPT_PATH -n $TEST_DIR/123data.csv" 0 "CREATE TABLE t_123data"
 
     # Test 13: SQL generation with special characters in filename
-    run_test "SQL generation - special chars in filename" "$SCRIPT_PATH $TEST_DIR/special-file_name.csv" 0 "CREATE TABLE special_file_name"
+    run_test "SQL generation - special chars in filename" "$SCRIPT_PATH -n $TEST_DIR/special-file_name.csv" 0 "CREATE TABLE special_file_name"
 
     # Test 14: SQL generation with empty column name
-    run_test "SQL generation - empty column name" "$SCRIPT_PATH $TEST_DIR/empty_column.csv" 0 "c_1_"
+    run_test "SQL generation - empty column name" "$SCRIPT_PATH -n $TEST_DIR/empty_column.csv" 0 "c_1_"
 
     # Test 15: Verify all columns are included with TEXT type
-    run_test "SQL generation - all columns included" "$SCRIPT_PATH $TEST_DIR/valid.csv" 0 "name TEXT"
-    run_test "SQL generation - age column included" "$SCRIPT_PATH $TEST_DIR/valid.csv" 0 "age TEXT"
-    run_test "SQL generation - city column included" "$SCRIPT_PATH $TEST_DIR/valid.csv" 0 "city TEXT"
-    run_test "SQL generation - country column included" "$SCRIPT_PATH $TEST_DIR/valid.csv" 0 "country TEXT"
+    run_test "SQL generation - all columns included" "$SCRIPT_PATH -n $TEST_DIR/valid.csv" 0 "name TEXT"
+    run_test "SQL generation - age column included" "$SCRIPT_PATH -n $TEST_DIR/valid.csv" 0 "age TEXT"
+    run_test "SQL generation - city column included" "$SCRIPT_PATH -n $TEST_DIR/valid.csv" 0 "city TEXT"
+    run_test "SQL generation - country column included" "$SCRIPT_PATH -n $TEST_DIR/valid.csv" 0 "country TEXT"
 
     # Test 16: Interactive mode with custom table name
-    run_test "Interactive - custom table name" "cat $TEST_DIR/input_custom_table.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv" 0 "CREATE TABLE custom_table"
+    run_test "Interactive - custom table name" "cat $TEST_DIR/input_custom_table.txt | $SCRIPT_PATH -i -n $TEST_DIR/valid.csv" 0 "CREATE TABLE custom_table"
 
     # Test 17: Interactive mode with custom column type
-    run_test "Interactive - custom column type" "cat $TEST_DIR/input_custom_type.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv" 0 "name INT"
+    run_test "Interactive - custom column type" "cat $TEST_DIR/input_custom_type.txt | $SCRIPT_PATH -i -n $TEST_DIR/valid.csv" 0 "name INT"
 
     # Test 18: Interactive mode with NOT NULL constraint
-    run_test "Interactive - NOT NULL constraint" "cat $TEST_DIR/input_not_null.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv" 0 "NOT NULL"
+    run_test "Interactive - NOT NULL constraint" "cat $TEST_DIR/input_not_null.txt | $SCRIPT_PATH -i -n $TEST_DIR/valid.csv" 0 "NOT NULL"
 
     # Test 19: Interactive mode with all defaults
-    run_test "Interactive - all defaults" "cat $TEST_DIR/input_defaults.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv" 0 "Using defaults for all remaining questions"
+    run_test "Interactive - all defaults" "cat $TEST_DIR/input_defaults.txt | $SCRIPT_PATH -i -n $TEST_DIR/valid.csv" 0 "Using defaults for all remaining questions"
 
     # Test 20: Interactive mode with custom table then defaults
-    run_test "Interactive - custom table then defaults" "cat $TEST_DIR/input_table_then_defaults.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv" 0 "CREATE TABLE my_custom_table"
+    run_test "Interactive - custom table then defaults" "cat $TEST_DIR/input_table_then_defaults.txt | $SCRIPT_PATH -i -n $TEST_DIR/valid.csv" 0 "CREATE TABLE my_custom_table"
 
     # Test 21: Interactive mode with custom type then defaults
-    run_test "Interactive - custom type then defaults" "cat $TEST_DIR/input_type_then_defaults.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv" 0 "name INT"
+    run_test "Interactive - custom type then defaults" "cat $TEST_DIR/input_type_then_defaults.txt | $SCRIPT_PATH -i -n $TEST_DIR/valid.csv" 0 "name INT"
 
     # Test 22: Verify pre-population message appears when using defaults
-    run_test "Interactive - pre-population message" "cat $TEST_DIR/input_defaults.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv" 0 "Pre-populating remaining columns with defaults"
+    run_test "Interactive - pre-population message" "cat $TEST_DIR/input_defaults.txt | $SCRIPT_PATH -i -n $TEST_DIR/valid.csv" 0 "Pre-populating remaining columns with defaults"
 
     # Test 23: Check command runs successfully in interactive mode
-    run_test "Interactive - command success" "cat $TEST_DIR/input_defaults.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv" 0 ""
+    run_test "Interactive - command success" "cat $TEST_DIR/input_defaults.txt | $SCRIPT_PATH -i -n $TEST_DIR/valid.csv" 0 ""
 
     # Test for auto-increment ID option
-    run_test "Auto-increment ID option" "$SCRIPT_PATH -a $TEST_DIR/auto_id_test.csv" 0 "id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY"
+    run_test "Auto-increment ID option" "$SCRIPT_PATH -a -n $TEST_DIR/auto_id_test.csv" 0 "id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY"
 
     # Test for auto-increment ID with proper comma placement
-    run_test "Auto-increment ID comma placement" "$SCRIPT_PATH -a $TEST_DIR/auto_id_test.csv" 0 "PRIMARY KEY,"
+    run_test "Auto-increment ID comma placement" "$SCRIPT_PATH -a -n $TEST_DIR/auto_id_test.csv" 0 "PRIMARY KEY,"
 
     # Test for auto-increment ID with recreate option
-    run_test "Auto-increment ID with recreate" "$SCRIPT_PATH -a -r $TEST_DIR/auto_id_test.csv" 0 "DROP TABLE IF EXISTS auto_id_test"
+    run_test "Auto-increment ID with recreate" "$SCRIPT_PATH -a -r -n $TEST_DIR/auto_id_test.csv" 0 "DROP TABLE IF EXISTS auto_id_test"
 
     # Test for auto-increment ID with interactive mode
-    run_test "Auto-increment ID with interactive" "echo 'd' | $SCRIPT_PATH -a -i $TEST_DIR/auto_id_test.csv" 0 "id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY"
+    run_test "Auto-increment ID with interactive" "echo 'd' | $SCRIPT_PATH -a -i -n $TEST_DIR/auto_id_test.csv" 0 "id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY"
+
+    # Test for dry run message
+    run_test "Dry run message" "$SCRIPT_PATH -n $TEST_DIR/valid.csv" 0 "Dry run specified - no data imported"
 }
 
 # Main execution

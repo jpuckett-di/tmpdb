@@ -4,26 +4,26 @@ set -e
 
 # Function to display usage information
 show_usage() {
-    echo "Usage: $0 [-i] [-d] [-r] [-a] <csv_file>"
+    echo "Usage: $0 [-i] [-r] [-a] [-n] <csv_file>"
     echo "Options:"
     echo "  -i    Interactive mode: Allows customizing column data types and constraints"
-    echo "  -d    Database import: Import the data into the database after creating the table"
     echo "  -r    Recreate table: Drop the table first if it exists"
     echo "  -a    Add auto-increment ID: Adds an 'id' column as an unsigned int primary key"
+    echo "  -n    Dry run: Only generate SQL, don't import data"
     exit 1
 }
 
 # Parse command line options
 INTERACTIVE=false
-DB_IMPORT=false
 RECREATE=false
 ADD_AUTO_ID=false
-while getopts "idra" opt; do
+DRY_RUN=false
+while getopts "iran" opt; do
     case $opt in
         i) INTERACTIVE=true ;;
-        d) DB_IMPORT=true ;;
         r) RECREATE=true ;;
         a) ADD_AUTO_ID=true ;;
+        n) DRY_RUN=true ;;
         *) show_usage ;;
     esac
 done
@@ -444,8 +444,9 @@ IGNORE 1 ROWS
 }
 
 # At the end of the script, after generating the SQL
-if [ "$DB_IMPORT" = true ]; then
+if [ "$DRY_RUN" = false ]; then
     # Import the data to the database using the stored SQL
     import_data_to_db "$1" "$TABLE_NAME" "$CREATE_TABLE_SQL"
+else
+    echo "Dry run specified - no data imported"
 fi
-

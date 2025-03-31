@@ -19,13 +19,13 @@ The `import-new-table.bash` script allows you to easily convert CSV files to MyS
 ### Options
 
 - `-i` Interactive mode: Allows customizing column data types and constraints
-- `-d` Database import: Import the data into the database after creating the table
 - `-r` Recreate table: Drop the table first if it exists
 - `-a` Add auto-increment ID: Adds an 'id' column as an unsigned int primary key
+- `-n` Dry run: Only generate SQL, don't import data
 
 ### Examples
 
-1. Generate a CREATE TABLE SQL script from a CSV file:
+1. Import a CSV file with default settings:
 
 ```bash
 ./import-new-table.bash data.csv
@@ -37,10 +37,10 @@ The `import-new-table.bash` script allows you to easily convert CSV files to MyS
 ./import-new-table.bash -i data.csv
 ```
 
-3. Import the data directly into the database:
+3. Generate SQL without importing (dry run):
 
 ```bash
-./import-new-table.bash -d data.csv
+./import-new-table.bash -n data.csv
 ```
 
 4. Drop and recreate the table if it already exists:
@@ -58,7 +58,7 @@ The `import-new-table.bash` script allows you to easily convert CSV files to MyS
 6. Combine options:
 
 ```bash
-./import-new-table.bash -i -d -r -a data.csv
+./import-new-table.bash -i -r -a -n data.csv
 ```
 
 ### Interactive Mode
@@ -72,7 +72,7 @@ In interactive mode, you can:
 
 ### Generated SQL
 
-The script generates SQL files with the naming pattern `<csv_filename>_create_table.sql` in the same directory as the CSV file. By default, all columns use the TEXT data type with NULL allowed.
+The script generates and displays the CREATE TABLE SQL statement. By default, all columns use the TEXT data type with NULL allowed.
 
 ### Empty Values
 
