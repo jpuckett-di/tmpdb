@@ -4,11 +4,12 @@ set -e
 
 # Function to display usage information
 show_usage() {
-    echo "Usage: $0 [-i] [-a] [-n] <csv_file>"
+    echo "Usage: $0 [-c] [-i] [-a] [-n] <csv_file>"
     echo "Options:"
-    echo "  -i    Interactive mode: Allows customizing column data types and constraints"
-    echo "  -a    Add auto-increment ID: Adds an 'id' column as an unsigned int primary key"
+    echo "  -i    Interactive mode: Allows customizing column data types and constraints (implies -c)"
+    echo "  -a    Add auto-increment ID: Adds an 'id' column as an unsigned int primary key (implies -c)"
     echo "  -n    Dry run: Only generate SQL, don't import data"
+    echo "  -c    Create table: Create a new table for the data (otherwise imports to existing table)"
     exit 1
 }
 
@@ -16,10 +17,18 @@ show_usage() {
 INTERACTIVE=false
 ADD_AUTO_ID=false
 DRY_RUN=false
-while getopts "ian" opt; do
+CREATE_TABLE=false
+while getopts "cian" opt; do
     case $opt in
-        i) INTERACTIVE=true ;;
-        a) ADD_AUTO_ID=true ;;
+        c) CREATE_TABLE=true ;;
+        i)
+            INTERACTIVE=true
+            CREATE_TABLE=true
+            ;;
+        a)
+            ADD_AUTO_ID=true
+            CREATE_TABLE=true
+            ;;
         n) DRY_RUN=true ;;
         *) show_usage ;;
     esac
@@ -336,22 +345,37 @@ generate_create_table_sql() {
     TABLE_NAME="$table_name"
 }
 
-# If interactive mode is enabled, define column properties
-if [ "$INTERACTIVE" = true ]; then
-    define_column_properties "$1"
-fi
+# Function to import data to an existing table
+import_to_existing_table() {
+    local csv_file="$1"
+    local raw_table_name=$(basename "$csv_file" .csv)
+    local db_name="db"  # Hardcoded database name
 
-# Generate the CREATE TABLE SQL command
-generate_create_table_sql "$1"
+    # Determine default table name
+    local default_table_name=$(echo "$raw_table_name" | tr ' -' '_' | tr -cd '[:alnum:]_')
+    if [[ ! $default_table_name =~ ^[a-zA-Z_] ]]; then
+        default_table_name="t_$default_table_name"
+    fi
 
-# Function to import data into the database
-import_data_to_db() {
+    # Prompt for table name
+    read -p "Table name to import data into [$default_table_name]: " table_name
+    table_name=${table_name:-$default_table_name}
+
+    # Import the data
+    if [ "$DRY_RUN" = false ]; then
+        import_data_to_existing_table "$csv_file" "$table_name"
+    else
+        echo "Dry run specified - would import to table: $table_name"
+    fi
+}
+
+# Function to import data into an existing table
+import_data_to_existing_table() {
     local csv_file="$1"
     local table_name="$2"
-    local sql="$3"
     local db_service="db"  # Default service name in docker-compose.yml
 
-    echo "Importing data to database..."
+    echo "Importing data to existing table: $table_name"
 
     # Check if docker compose is available
     if ! command -v docker &> /dev/null; then
@@ -367,10 +391,11 @@ import_data_to_db() {
         return 1
     fi
 
-    # Create the table using the SQL
-    echo "Creating table using SQL command"
-    if ! echo -e "$sql" | docker compose exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db; then
-        echo "Error: Failed to create table using SQL command"
+    # Check if the table exists
+    echo "Checking if table exists..."
+    if ! docker compose exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db -e "SHOW TABLES LIKE '$table_name'" | grep -q "$table_name"; then
+        echo "Error: Table '$table_name' does not exist"
+        echo "Use the -c option to create a new table"
         return 1
     fi
 
@@ -438,10 +463,57 @@ IGNORE 1 ROWS
     return 0
 }
 
-# At the end of the script, after generating the SQL
-if [ "$DRY_RUN" = false ]; then
-    # Import the data to the database using the stored SQL
-    import_data_to_db "$1" "$TABLE_NAME" "$CREATE_TABLE_SQL"
+# Function to import data into the database with a new table
+import_data_to_db() {
+    local csv_file="$1"
+    local table_name="$2"
+    local sql="$3"
+    local db_service="db"  # Default service name in docker-compose.yml
+
+    echo "Creating table and importing data..."
+
+    # Check if docker compose is available
+    if ! command -v docker &> /dev/null; then
+        echo "Error: docker command not found"
+        echo "Please install Docker to use the database import feature"
+        return 1
+    fi
+
+    # Check if the db service is running
+    if ! docker compose ps | grep -q "$db_service.*running"; then
+        echo "Error: Database service '$db_service' is not running"
+        echo "Please start the service with: docker compose up -d $db_service"
+        return 1
+    fi
+
+    # Create the table using the SQL
+    echo "Creating table using SQL command"
+    if ! echo -e "$sql" | docker compose exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db; then
+        echo "Error: Failed to create table using SQL command"
+        return 1
+    fi
+
+    # Now that the table is created, import the data
+    import_data_to_existing_table "$csv_file" "$table_name"
+}
+
+# Main flow at the end of the script
+if [ "$CREATE_TABLE" = true ]; then
+    # If interactive mode is enabled, define column properties
+    if [ "$INTERACTIVE" = true ]; then
+        define_column_properties "$1"
+    fi
+
+    # Generate the CREATE TABLE SQL command
+    generate_create_table_sql "$1"
+
+    # Import the data if not a dry run
+    if [ "$DRY_RUN" = false ]; then
+        import_data_to_db "$1" "$TABLE_NAME" "$CREATE_TABLE_SQL"
+    else
+        echo "Dry run specified - no data imported"
+    fi
 else
-    echo "Dry run specified - no data imported"
+    # Just import to an existing table
+    import_to_existing_table "$1"
 fi
