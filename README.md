@@ -18,6 +18,7 @@ The `import.bash` script allows you to easily convert CSV files to MySQL tables 
 
 ### Options
 
+- `-t` Truncate table: Clear all data from the table before importing
 - `-c` Create table: Create a new table for the data (otherwise imports into an existing table)
 - `-i` Interactive mode: Allows customizing column data types and constraints (implies -c)
 - `-a` Add auto-increment ID: Adds an 'id' column as an unsigned int primary key (implies -c)
@@ -29,6 +30,12 @@ Import a CSV file to an existing table:
 
 ```bash
 ./import.bash data.csv
+```
+
+Truncate table before importing:
+
+```bash
+./import.bash -t data.csv
 ```
 
 Create a new table and import data:

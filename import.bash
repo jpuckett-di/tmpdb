@@ -4,12 +4,13 @@ set -e
 
 # Function to display usage information
 show_usage() {
-    echo "Usage: $0 [-c] [-i] [-a] [-n] <csv_file>"
+    echo "Usage: $0 [-t] [-c] [-i] [-a] [-n] <csv_file>"
     echo "Options:"
+    echo "  -t    Truncate table: Clear all data from the table before importing"
+    echo "  -c    Create table: Create a new table for the data (otherwise imports to existing table)"
     echo "  -i    Interactive mode: Allows customizing column data types and constraints (implies -c)"
     echo "  -a    Add auto-increment ID: Adds an 'id' column as an unsigned int primary key (implies -c)"
     echo "  -n    Dry run: Only generate SQL, don't import data"
-    echo "  -c    Create table: Create a new table for the data (otherwise imports to existing table)"
     exit 1
 }
 
@@ -18,8 +19,10 @@ INTERACTIVE=false
 ADD_AUTO_ID=false
 DRY_RUN=false
 CREATE_TABLE=false
-while getopts "cian" opt; do
+TRUNCATE_TABLE=false
+while getopts "tcian" opt; do
     case $opt in
+        t) TRUNCATE_TABLE=true ;;
         c) CREATE_TABLE=true ;;
         i)
             INTERACTIVE=true
@@ -396,6 +399,16 @@ import_data_to_existing_table() {
         echo "Error: Table '$table_name' does not exist"
         echo "Use the -c option to create a new table"
         return 1
+    fi
+
+    # Truncate the table if requested
+    if [ "$TRUNCATE_TABLE" = true ]; then
+        echo "Truncating table before import..."
+        if ! docker compose exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db -e "TRUNCATE TABLE $table_name"; then
+            echo "Error: Failed to truncate table"
+            return 1
+        fi
+        echo "Table truncated successfully"
     fi
 
     # Get the absolute path of the CSV file
