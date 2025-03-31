@@ -21,6 +21,7 @@ The `import-new-table.bash` script allows you to easily convert CSV files to MyS
 - `-i` Interactive mode: Allows customizing column data types and constraints
 - `-d` Database import: Import the data into the database after creating the table
 - `-r` Recreate table: Drop the table first if it exists
+- `-a` Add auto-increment ID: Adds an 'id' column as an unsigned int primary key
 
 ### Examples
 
@@ -48,10 +49,16 @@ The `import-new-table.bash` script allows you to easily convert CSV files to MyS
 ./import-new-table.bash -r data.csv
 ```
 
-5. Combine options:
+5. Add an auto-increment ID column:
 
 ```bash
-./import-new-table.bash -i -d -r data.csv
+./import-new-table.bash -a data.csv
+```
+
+6. Combine options:
+
+```bash
+./import-new-table.bash -i -d -r -a data.csv
 ```
 
 ### Interactive Mode

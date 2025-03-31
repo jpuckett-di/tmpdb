@@ -143,6 +143,11 @@ create_test_files() {
     echo "" > "$TEST_DIR/input_type_then_defaults.txt"  # Use default table name
     echo "INT" >> "$TEST_DIR/input_type_then_defaults.txt"  # Custom type for first column
     echo "d" >> "$TEST_DIR/input_type_then_defaults.txt"  # Defaults for rest
+
+    # Create a test file for auto-increment ID option
+    echo "name,age,city" > "$TEST_DIR/auto_id_test.csv"
+    echo "John,30,New York" >> "$TEST_DIR/auto_id_test.csv"
+    echo "Jane,25,London" >> "$TEST_DIR/auto_id_test.csv"
 }
 
 # Run tests
@@ -218,6 +223,18 @@ run_tests() {
 
     # Test 23: Check SQL file is created in interactive mode
     run_test "Interactive - SQL file creation" "bash -c 'cat $TEST_DIR/input_defaults.txt | $SCRIPT_PATH -i $TEST_DIR/valid.csv && [ -f \"$TEST_DIR/valid_create_table.sql\" ]'" 0 ""
+
+    # Test for auto-increment ID option
+    run_test "Auto-increment ID option" "$SCRIPT_PATH -a $TEST_DIR/auto_id_test.csv" 0 "id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY"
+
+    # Test for auto-increment ID with proper comma placement
+    run_test "Auto-increment ID comma placement" "$SCRIPT_PATH -a $TEST_DIR/auto_id_test.csv" 0 "PRIMARY KEY,"
+
+    # Test for auto-increment ID with recreate option
+    run_test "Auto-increment ID with recreate" "$SCRIPT_PATH -a -r $TEST_DIR/auto_id_test.csv" 0 "DROP TABLE IF EXISTS auto_id_test"
+
+    # Test for auto-increment ID with interactive mode
+    run_test "Auto-increment ID with interactive" "echo 'd' | $SCRIPT_PATH -a -i $TEST_DIR/auto_id_test.csv" 0 "id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY"
 }
 
 # Main execution

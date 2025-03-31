@@ -4,11 +4,12 @@ set -e
 
 # Function to display usage information
 show_usage() {
-    echo "Usage: $0 [-i] [-d] [-r] <csv_file>"
+    echo "Usage: $0 [-i] [-d] [-r] [-a] <csv_file>"
     echo "Options:"
     echo "  -i    Interactive mode: Allows customizing column data types and constraints"
     echo "  -d    Database import: Import the data into the database after creating the table"
     echo "  -r    Recreate table: Drop the table first if it exists"
+    echo "  -a    Add auto-increment ID: Adds an 'id' column as an unsigned int primary key"
     exit 1
 }
 
@@ -16,11 +17,13 @@ show_usage() {
 INTERACTIVE=false
 DB_IMPORT=false
 RECREATE=false
-while getopts "idr" opt; do
+ADD_AUTO_ID=false
+while getopts "idra" opt; do
     case $opt in
         i) INTERACTIVE=true ;;
         d) DB_IMPORT=true ;;
         r) RECREATE=true ;;
+        a) ADD_AUTO_ID=true ;;
         *) show_usage ;;
     esac
 done
@@ -289,6 +292,14 @@ generate_create_table_sql() {
     # Add the CREATE TABLE statement
     sql="${sql}CREATE TABLE $table_name (\n"
 
+    # Add auto-increment ID column if option is enabled
+    local first_column=true
+    if [ "$ADD_AUTO_ID" = true ]; then
+        sql="${sql}    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY"
+        echo "Adding auto-increment ID column"
+        first_column=false
+    fi
+
     # Add columns with their data types and constraints
     for i in "${!CSV_COLUMNS[@]}"; do
         # Clean column name (replace spaces with underscores and remove special characters)
@@ -299,9 +310,11 @@ generate_create_table_sql() {
             column_name="c_${i}_$column_name"
         fi
 
-        # Add comma for all but the first column
-        if [ $i -gt 0 ]; then
+        # Add comma if this is not the first column
+        if [ "$first_column" = false ]; then
             sql="$sql,\n"
+        else
+            first_column=false
         fi
 
         # Add column definition with data type and constraints
