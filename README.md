@@ -73,13 +73,13 @@ Combine options:
 In interactive mode, you can:
 
 - Customize the table name
-- Define data types for each column (TEXT, VARCHAR, INT, FLOAT, DATE, etc.)
+- Define data types for each column (VARCHAR(255), TEXT, INT, FLOAT, DATE, DATETIME, etc.)
 - Add constraints (NOT NULL, UNIQUE, PRIMARY KEY)
 - Use 'd' at any prompt to accept defaults for all remaining questions
 
 ### Generated SQL
 
-When creating a table (-c option), the script generates and displays the CREATE TABLE SQL statement. By default, all columns use the TEXT data type with NULL allowed. The script always includes a DROP TABLE IF EXISTS statement to ensure a clean table creation.
+When creating a table (-c option), the script generates and displays the CREATE TABLE SQL statement. By default, all columns use the VARCHAR(255) data type with NULL allowed. The script always includes a DROP TABLE IF EXISTS statement to ensure a clean table creation.
 
 ### Empty Values
 

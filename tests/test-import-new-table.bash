@@ -183,7 +183,7 @@ run_tests() {
     run_test "SQL output display" "$SCRIPT_PATH -cn $TEST_DIR/valid.csv" 0 "CREATE TABLE valid"
 
     # Test 11: SQL generation with special characters in column names
-    run_test "SQL generation - special chars in columns" "$SCRIPT_PATH -cn $TEST_DIR/special_chars.csv" 0 "first_name TEXT"
+    run_test "SQL generation - special chars in columns" "$SCRIPT_PATH -cn $TEST_DIR/special_chars.csv" 0 "first_name VARCHAR(255)"
 
     # Test 12: SQL generation with numeric filename (should prepend t_)
     run_test "SQL generation - numeric filename" "$SCRIPT_PATH -cn $TEST_DIR/123data.csv" 0 "CREATE TABLE t_123data"
@@ -194,11 +194,11 @@ run_tests() {
     # Test 14: SQL generation with empty column name
     run_test "SQL generation - empty column name" "$SCRIPT_PATH -cn $TEST_DIR/empty_column.csv" 0 "c_1_"
 
-    # Test 15: Verify all columns are included with TEXT type
-    run_test "SQL generation - all columns included" "$SCRIPT_PATH -cn $TEST_DIR/valid.csv" 0 "name TEXT"
-    run_test "SQL generation - age column included" "$SCRIPT_PATH -cn $TEST_DIR/valid.csv" 0 "age TEXT"
-    run_test "SQL generation - city column included" "$SCRIPT_PATH -cn $TEST_DIR/valid.csv" 0 "city TEXT"
-    run_test "SQL generation - country column included" "$SCRIPT_PATH -cn $TEST_DIR/valid.csv" 0 "country TEXT"
+    # Test 15: Verify all columns are included with VARCHAR(255) type
+    run_test "SQL generation - all columns included" "$SCRIPT_PATH -cn $TEST_DIR/valid.csv" 0 "name VARCHAR(255)"
+    run_test "SQL generation - age column included" "$SCRIPT_PATH -cn $TEST_DIR/valid.csv" 0 "age VARCHAR(255)"
+    run_test "SQL generation - city column included" "$SCRIPT_PATH -cn $TEST_DIR/valid.csv" 0 "city VARCHAR(255)"
+    run_test "SQL generation - country column included" "$SCRIPT_PATH -cn $TEST_DIR/valid.csv" 0 "country VARCHAR(255)"
 
     # Test 16: Interactive mode with custom table name
     run_test "Interactive - custom table name" "cat $TEST_DIR/input_custom_table.txt | $SCRIPT_PATH -i -n $TEST_DIR/valid.csv" 0 "CREATE TABLE custom_table"

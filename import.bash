@@ -155,7 +155,7 @@ define_column_properties() {
         echo "Column $i: $column_name"
 
         # Default data type
-        local default_type="TEXT"
+        local default_type="VARCHAR(255)"
 
         if [ "$USE_DEFAULTS" = true ]; then
             # Use defaults
@@ -332,7 +332,7 @@ generate_create_table_sql() {
             fi
         else
             # Use default properties
-            sql="$sql    $column_name TEXT NULL"
+            sql="$sql    $column_name VARCHAR(255) NULL"
         fi
     done
 
