@@ -148,6 +148,15 @@ create_test_files() {
     echo "name,age,city" > "$TEST_DIR/auto_id_test.csv"
     echo "John,30,New York" >> "$TEST_DIR/auto_id_test.csv"
     echo "Jane,25,London" >> "$TEST_DIR/auto_id_test.csv"
+
+    # CSV file with MySQL reserved keywords as column names
+    echo "select,from,where,order" > "$TEST_DIR/reserved_keywords.csv"
+    echo "value1,value2,value3,value4" >> "$TEST_DIR/reserved_keywords.csv"
+
+    # Create input file for reserved keywords test with custom column name
+    echo "reserved_keywords" > "$TEST_DIR/input_reserved_keywords_custom.txt"
+    echo "my_select_column" >> "$TEST_DIR/input_reserved_keywords_custom.txt"  # Custom name for the reserved keyword column
+    echo "d" >> "$TEST_DIR/input_reserved_keywords_custom.txt"  # Use defaults for remaining questions
 }
 
 # Run tests
@@ -244,6 +253,20 @@ run_tests() {
 
     # Test for TEXT option
     run_test "TEXT option" "$SCRIPT_PATH -cT -n $TEST_DIR/valid.csv" 0 "name TEXT"
+
+    # Test for reserved keyword handling in non-interactive mode
+    run_test "Reserved keyword handling" "$SCRIPT_PATH -cn $TEST_DIR/reserved_keywords.csv" 0 "WARNING: 'select' is a MySQL reserved keyword"
+
+    # Test for proper renaming of reserved keywords
+    run_test "Reserved keyword renaming" "$SCRIPT_PATH -cn $TEST_DIR/reserved_keywords.csv" 0 "col_select VARCHAR(255)"
+
+    # Test for multiple reserved keywords in the same file
+    run_test "Multiple reserved keywords" "$SCRIPT_PATH -cn $TEST_DIR/reserved_keywords.csv" 0 "col_from VARCHAR(255)"
+    run_test "Multiple reserved keywords" "$SCRIPT_PATH -cn $TEST_DIR/reserved_keywords.csv" 0 "col_where VARCHAR(255)"
+    run_test "Multiple reserved keywords" "$SCRIPT_PATH -cn $TEST_DIR/reserved_keywords.csv" 0 "col_order VARCHAR(255)"
+
+    # Test for interactive mode with reserved keywords and custom column name
+    run_test "Interactive - custom reserved keyword name" "cat $TEST_DIR/input_reserved_keywords_custom.txt | $SCRIPT_PATH -i -n $TEST_DIR/reserved_keywords.csv" 0 "my_select_column VARCHAR(255)"
 }
 
 # Main execution

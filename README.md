@@ -22,7 +22,7 @@ The `import.bash` script allows you to easily convert CSV files to MySQL tables 
 - `-c` Create table: Create a new table for the data (otherwise imports into an existing table)
 - `-i` Interactive mode: Allows customizing column data types and constraints (implies -c)
 - `-a` Add auto-increment ID: Adds an 'id' column as an unsigned int primary key (implies -c)
-- `-T` Use TEXT: Use TEXT as the default column type instead of VARCHAR(255)
+- `-T` Use TEXT: Use TEXT as the default column type instead of VARCHAR(255) (implies -c)
 - `-n` Dry run: Only generate SQL, don't import data
 
 ### Examples
@@ -95,3 +95,12 @@ When creating a table (-c option), the script generates and displays the CREATE 
 ### Empty Values
 
 Empty values in the CSV file are automatically converted to NULL in the database.
+
+### MySQL Reserved Keywords
+
+The script automatically detects MySQL reserved keywords in column names (like SELECT, FROM, WHERE, GROUP, etc.) and handles them appropriately:
+
+- In non-interactive mode, reserved keywords are automatically prefixed with "col_" (e.g., "select" becomes "col_select")
+- In interactive mode, you'll be warned about reserved keywords and given the opportunity to provide a custom column name
+
+This prevents SQL syntax errors that would occur when using reserved words as column names.

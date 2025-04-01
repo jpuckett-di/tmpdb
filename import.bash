@@ -2,6 +2,44 @@
 
 set -e
 
+# Move MYSQL_RESERVED_KEYWORDS to the top level of the script, before any functions
+# Define common MySQL reserved keywords at the top of the script, before any functions
+MYSQL_RESERVED_KEYWORDS=("ADD" "ALL" "ALTER" "ANALYZE" "AND" "AS" "ASC" "ASENSITIVE"
+"BEFORE" "BETWEEN" "BIGINT" "BINARY" "BLOB" "BOTH" "BY" "CALL" "CASCADE" "CASE" "CHANGE"
+"CHAR" "CHARACTER" "CHECK" "COLLATE" "COLUMN" "CONDITION" "CONSTRAINT" "CONTINUE"
+"CONVERT" "CREATE" "CROSS" "CURRENT_DATE" "CURRENT_TIME" "CURRENT_TIMESTAMP" "CURRENT_USER"
+"CURSOR" "DATABASE" "DATABASES" "DAY_HOUR" "DAY_MICROSECOND" "DAY_MINUTE" "DAY_SECOND"
+"DEC" "DECIMAL" "DECLARE" "DEFAULT" "DELAYED" "DELETE" "DESC" "DESCRIBE" "DETERMINISTIC"
+"DISTINCT" "DISTINCTROW" "DIV" "DOUBLE" "DROP" "DUAL" "EACH" "ELSE" "ELSEIF" "ENCLOSED"
+"ESCAPED" "EXISTS" "EXIT" "EXPLAIN" "FALSE" "FETCH" "FLOAT" "FLOAT4" "FLOAT8" "FOR"
+"FORCE" "FOREIGN" "FROM" "FULLTEXT" "GRANT" "GROUP" "HAVING" "HIGH_PRIORITY" "HOUR_MICROSECOND"
+"HOUR_MINUTE" "HOUR_SECOND" "IF" "IGNORE" "IN" "INDEX" "INFILE" "INNER" "INOUT" "INSENSITIVE"
+"INSERT" "INT" "INT1" "INT2" "INT3" "INT4" "INT8" "INTEGER" "INTERVAL" "INTO" "IS" "ITERATE"
+"JOIN" "KEY" "KEYS" "KILL" "LEADING" "LEAVE" "LEFT" "LIKE" "LIMIT" "LINES" "LOAD" "LOCALTIME"
+"LOCALTIMESTAMP" "LOCK" "LONG" "LONGBLOB" "LONGTEXT" "LOOP" "LOW_PRIORITY" "MATCH" "MEDIUMBLOB"
+"MEDIUMINT" "MEDIUMTEXT" "MIDDLEINT" "MINUTE_MICROSECOND" "MINUTE_SECOND" "MOD" "MODIFIES"
+"NATURAL" "NOT" "NO_WRITE_TO_BINLOG" "NULL" "NUMERIC" "ON" "OPTIMIZE" "OPTION" "OPTIONALLY"
+"OR" "ORDER" "OUT" "OUTER" "OUTFILE" "PRECISION" "PRIMARY" "PROCEDURE" "PURGE" "RANGE" "READ"
+"READS" "READ_ONLY" "READ_WRITE" "REAL" "REFERENCES" "REGEXP" "RELEASE" "RENAME" "REPEAT"
+"REPLACE" "REQUIRE" "RESTRICT" "RETURN" "REVOKE" "RIGHT" "RLIKE" "SCHEMA" "SCHEMAS" "SECOND_MICROSECOND"
+"SELECT" "SENSITIVE" "SEPARATOR" "SET" "SHOW" "SMALLINT" "SONAME" "SPATIAL" "SPECIFIC" "SQL"
+"SQLEXCEPTION" "SQLSTATE" "SQLWARNING" "SQL_BIG_RESULT" "SQL_CALC_FOUND_ROWS" "SQL_SMALL_RESULT"
+"SSL" "STARTING" "STRAIGHT_JOIN" "TABLE" "TERMINATED" "THEN" "TINYBLOB" "TINYINT" "TINYTEXT"
+"TO" "TRAILING" "TRIGGER" "TRUE" "UNDO" "UNION" "UNIQUE" "UNLOCK" "UNSIGNED" "UPDATE" "USAGE"
+"USE" "USING" "UTC_DATE" "UTC_TIME" "UTC_TIMESTAMP" "VALUES" "VARBINARY" "VARCHAR" "VARCHARACTER"
+"VARYING" "WHEN" "WHERE" "WHILE" "WITH" "WRITE" "X509" "XOR" "YEAR_MONTH" "ZEROFILL")
+
+# Function to check if a string is a MySQL reserved keyword
+is_mysql_reserved_keyword() {
+    local word_to_check=$(echo "$1" | tr '[:lower:]' '[:upper:]')
+    for keyword in "${MYSQL_RESERVED_KEYWORDS[@]}"; do
+        if [ "$word_to_check" = "$keyword" ]; then
+            return 0  # True, it is a reserved keyword
+        fi
+    done
+    return 1  # False, not a reserved keyword
+}
+
 # Function to display usage information
 show_usage() {
     echo "Usage: $0 [-t] [-c] [-i] [-a] [-T] [-n] <csv_file>"
@@ -112,6 +150,7 @@ define_column_properties() {
     # Arrays to store column properties
     COLUMN_TYPES=()
     COLUMN_CONSTRAINTS=()
+    COLUMN_NAMES=()  # Add this array to store custom column names
 
     echo "Interactive mode: Define table properties"
     echo "At any prompt, enter 'd' to accept defaults for all remaining questions"
@@ -165,6 +204,26 @@ define_column_properties() {
         if [[ -z $column_name || ! $column_name =~ ^[a-zA-Z_] ]]; then
             column_name="c_${i}_$column_name"
         fi
+
+        # Check if column name is a reserved keyword using our function
+        if is_mysql_reserved_keyword "$column_name"; then
+            if [ "$INTERACTIVE" = true ]; then
+                echo "  Warning: '$column_name' is a MySQL reserved keyword"
+                read -p "  New column name [col_$column_name]: " reserved_column_name
+                if [ -n "$reserved_column_name" ]; then
+                    column_name="$reserved_column_name"
+                else
+                    column_name="col_$column_name"
+                fi
+            else
+                # Automatically prefix reserved keywords
+                column_name="col_$column_name"
+                echo "  Renamed reserved keyword column: $column_name"
+            fi
+        fi
+
+        # Store the column name
+        COLUMN_NAMES[$i]="$column_name"
 
         echo "Column $i: $column_name"
 
@@ -257,15 +316,26 @@ define_column_properties() {
 
         echo ""
 
-        # If using defaults, pre-populate the remaining columns
+        # Pre-populate remaining columns with defaults if user chose to use defaults
         if [ "$USE_DEFAULTS" = true ] && [ $i -lt $((${#CSV_COLUMNS[@]} - 1)) ]; then
-            echo "Pre-populating remaining columns with defaults..."
+            echo "Pre-populating remaining columns with defaults"
             for j in $(seq $((i + 1)) $((${#CSV_COLUMNS[@]} - 1))); do
-                # Clean column name for display
+                # Clean column name
                 local next_col_name=$(echo "${CSV_COLUMNS[$j]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
+
+                # If column name is empty or doesn't start with a letter or underscore, prepend 'c_'
                 if [[ -z $next_col_name || ! $next_col_name =~ ^[a-zA-Z_] ]]; then
                     next_col_name="c_${j}_$next_col_name"
                 fi
+
+                # Check if column name is a reserved keyword
+                if is_mysql_reserved_keyword "$next_col_name"; then
+                    next_col_name="col_$next_col_name"
+                    echo "  Renamed reserved keyword column: $next_col_name"
+                fi
+
+                # Store the column name
+                COLUMN_NAMES[$j]="$next_col_name"
 
                 COLUMN_TYPES[$j]=$default_type
                 COLUMN_CONSTRAINTS[$j]=""
@@ -319,12 +389,24 @@ generate_create_table_sql() {
 
     # Add columns with their data types and constraints
     for i in "${!CSV_COLUMNS[@]}"; do
-        # Clean column name (replace spaces with underscores and remove special characters)
-        local column_name=$(echo "${CSV_COLUMNS[$i]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
+        # Use the stored column name if available from interactive mode
+        local column_name
+        if [ "$INTERACTIVE" = true ] && [ ${#COLUMN_NAMES[@]} -gt 0 ]; then
+            column_name="${COLUMN_NAMES[$i]}"
+        else
+            # Clean column name (replace spaces with underscores and remove special characters)
+            column_name=$(echo "${CSV_COLUMNS[$i]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
 
-        # If column name is empty or doesn't start with a letter or underscore, prepend 'c_'
-        if [[ -z $column_name || ! $column_name =~ ^[a-zA-Z_] ]]; then
-            column_name="c_${i}_$column_name"
+            # If column name is empty or doesn't start with a letter or underscore, prepend 'c_'
+            if [[ -z $column_name || ! $column_name =~ ^[a-zA-Z_] ]]; then
+                column_name="c_${i}_$column_name"
+            fi
+
+            # Check if column name is a reserved keyword using our function
+            if is_mysql_reserved_keyword "$column_name"; then
+                echo "  WARNING: '$column_name' is a MySQL reserved keyword, renaming to 'col_$column_name'"
+                column_name="col_$column_name"
+            fi
         fi
 
         # Add comma if this is not the first column
@@ -461,11 +543,24 @@ IGNORE 1 ROWS
     load_data_cmd="${load_data_cmd}\nSET "
 
     for i in $(seq 1 $num_columns); do
-        local col_name=$(echo "${CSV_COLUMNS[$((i-1))]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
+        local col_name
 
-        # If column name is empty or doesn't start with a letter or underscore, prepend 'c_'
-        if [[ -z $col_name || ! $col_name =~ ^[a-zA-Z_] ]]; then
-            col_name="c_$((i-1))_$col_name"
+        # Use the stored column name if available from interactive mode
+        if [ "$INTERACTIVE" = true ] && [ ${#COLUMN_NAMES[@]} -gt 0 ] && [ -n "${COLUMN_NAMES[$((i-1))]}" ]; then
+            col_name="${COLUMN_NAMES[$((i-1))]}"
+        else
+            # Clean column name
+            col_name=$(echo "${CSV_COLUMNS[$((i-1))]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
+
+            # If column name is empty or doesn't start with a letter or underscore, prepend 'c_'
+            if [[ -z $col_name || ! $col_name =~ ^[a-zA-Z_] ]]; then
+                col_name="c_$((i-1))_$col_name"
+            fi
+
+            # Check if column name is a reserved keyword
+            if is_mysql_reserved_keyword "$col_name"; then
+                col_name="col_$col_name"
+            fi
         fi
 
         # Add comma for all but the first column
