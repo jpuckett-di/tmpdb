@@ -4,12 +4,13 @@ set -e
 
 # Function to display usage information
 show_usage() {
-    echo "Usage: $0 [-t] [-c] [-i] [-a] [-n] <csv_file>"
+    echo "Usage: $0 [-t] [-c] [-i] [-a] [-T] [-n] <csv_file>"
     echo "Options:"
     echo "  -t    Truncate table: Clear all data from the table before importing"
     echo "  -c    Create table: Create a new table for the data (otherwise imports to existing table)"
     echo "  -i    Interactive mode: Allows customizing column data types and constraints (implies -c)"
     echo "  -a    Add auto-increment ID: Adds an 'id' column as an unsigned int primary key (implies -c)"
+    echo "  -T    Use TEXT: Use TEXT as the default column type instead of VARCHAR(255) (implies -c)"
     echo "  -n    Dry run: Only generate SQL, don't import data"
     exit 1
 }
@@ -20,7 +21,8 @@ ADD_AUTO_ID=false
 DRY_RUN=false
 CREATE_TABLE=false
 TRUNCATE_TABLE=false
-while getopts "tcian" opt; do
+USE_TEXT=false
+while getopts "tciaTn" opt; do
     case $opt in
         t) TRUNCATE_TABLE=true ;;
         c) CREATE_TABLE=true ;;
@@ -30,6 +32,10 @@ while getopts "tcian" opt; do
             ;;
         a)
             ADD_AUTO_ID=true
+            CREATE_TABLE=true
+            ;;
+        T)
+            USE_TEXT=true
             CREATE_TABLE=true
             ;;
         n) DRY_RUN=true ;;
@@ -143,6 +149,14 @@ define_column_properties() {
     echo "Available constraints: NOT NULL, UNIQUE, PRIMARY KEY"
     echo ""
 
+    # Default data type based on USE_TEXT option
+    local default_type
+    if [ "$USE_TEXT" = true ]; then
+        default_type="TEXT"
+    else
+        default_type="VARCHAR(255)"
+    fi
+
     for i in "${!CSV_COLUMNS[@]}"; do
         # Clean column name
         local column_name=$(echo "${CSV_COLUMNS[$i]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
@@ -153,9 +167,6 @@ define_column_properties() {
         fi
 
         echo "Column $i: $column_name"
-
-        # Default data type
-        local default_type="VARCHAR(255)"
 
         if [ "$USE_DEFAULTS" = true ]; then
             # Use defaults
@@ -331,8 +342,12 @@ generate_create_table_sql() {
                 sql="$sql ${COLUMN_CONSTRAINTS[$i]}"
             fi
         else
-            # Use default properties
-            sql="$sql    $column_name VARCHAR(255) NULL"
+            # Use default properties based on USE_TEXT option
+            if [ "$USE_TEXT" = true ]; then
+                sql="$sql    $column_name TEXT NULL"
+            else
+                sql="$sql    $column_name VARCHAR(255) NULL"
+            fi
         fi
     done
 

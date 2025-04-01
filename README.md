@@ -22,6 +22,7 @@ The `import.bash` script allows you to easily convert CSV files to MySQL tables 
 - `-c` Create table: Create a new table for the data (otherwise imports into an existing table)
 - `-i` Interactive mode: Allows customizing column data types and constraints (implies -c)
 - `-a` Add auto-increment ID: Adds an 'id' column as an unsigned int primary key (implies -c)
+- `-T` Use TEXT: Use TEXT as the default column type instead of VARCHAR(255)
 - `-n` Dry run: Only generate SQL, don't import data
 
 ### Examples
@@ -54,6 +55,16 @@ Add an auto-increment ID column (automatically creates a table):
 
 ```bash
 ./import.bash -a data.csv
+```
+
+If you're dealing with too much data and you get an error like this:
+
+> ERROR 1118 (42000) at line 5: Row size too large. The maximum row size for the used table type, not counting BLOBs, is 65535. This includes storage overhead, check the manual. You have to change some columns to TEXT or BLOBs
+
+then create a table with `TEXT` columns instead of the default `VARCHAR(255)`:
+
+```bash
+./import.bash -T data.csv
 ```
 
 Generate SQL without importing (dry run):

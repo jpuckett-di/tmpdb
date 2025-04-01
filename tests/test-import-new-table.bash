@@ -241,6 +241,9 @@ run_tests() {
 
     # Test for create table option
     run_test "Create table option" "$SCRIPT_PATH -c -n $TEST_DIR/valid.csv" 0 "CREATE TABLE valid"
+
+    # Test for TEXT option
+    run_test "TEXT option" "$SCRIPT_PATH -cT -n $TEST_DIR/valid.csv" 0 "name TEXT"
 }
 
 # Main execution
