@@ -10,7 +10,7 @@ docker compose up -d
 
 ## Import CSV
 
-The `import.bash` script allows you to easily convert CSV files to MySQL tables and import the data.
+The [`import.bash`](./import.bash) script allows you to easily import CSV files into MySQL tables and will create the table if needed.
 
 ```bash
 ./import.bash [options] <csv_file>
@@ -20,9 +20,9 @@ The `import.bash` script allows you to easily convert CSV files to MySQL tables 
 
 - `-t` Truncate table: Clear all data from the table before importing
 - `-c` Create table: Create a new table for the data (otherwise imports into an existing table)
-- `-i` Interactive mode: Allows customizing column data types and constraints (implies -c)
-- `-a` Add auto-increment ID: Adds an 'id' column as an unsigned int primary key (implies -c)
-- `-T` Use TEXT: Use TEXT as the default column type instead of VARCHAR(255) (implies -c)
+- `-i` Interactive mode: Allows customizing column data types and constraints (implies `-c`)
+- `-a` Add auto-increment ID: Adds an `id` column as an auto-incrementing unsigned integer primary key (implies `-c`)
+- `-T` Use `TEXT`: Use `TEXT` as the default column type instead of `VARCHAR(255)` (implies `-c`)
 - `-n` Dry run: Only generate SQL, don't import data
 
 ### Examples
@@ -84,23 +84,23 @@ Combine options:
 In interactive mode, you can:
 
 - Customize the table name
-- Define data types for each column (VARCHAR(255), TEXT, INT, FLOAT, DATE, DATETIME, etc.)
-- Add constraints (NOT NULL, UNIQUE, PRIMARY KEY)
-- Use 'd' at any prompt to accept defaults for all remaining questions
+- Define data types for each column (`VARCHAR(255)`, `TEXT`, `INT`, `FLOAT`, `DATE`, `DATETIME`, etc.)
+- Add constraints (`NOT NULL`, `UNIQUE`, `PRIMARY KEY`)
+- Use `d` at any prompt to accept defaults for all remaining questions
 
 ### Generated SQL
 
-When creating a table (-c option), the script generates and displays the CREATE TABLE SQL statement. By default, all columns use the VARCHAR(255) data type with NULL allowed. The script always includes a DROP TABLE IF EXISTS statement to ensure a clean table creation.
+When creating a table (`-c` option), the script generates and displays the `CREATE TABLE` SQL statement. By default, all columns use the `VARCHAR(255)` data type with `NULL` allowed. The script always includes a `DROP TABLE IF EXISTS` statement to ensure a clean table creation.
 
 ### Empty Values
 
-Empty values in the CSV file are automatically converted to NULL in the database.
+Empty values in the CSV file are automatically converted to `NULL` in the database.
 
 ### MySQL Reserved Keywords
 
-The script automatically detects MySQL reserved keywords in column names (like SELECT, FROM, WHERE, GROUP, etc.) and handles them appropriately:
+The script automatically detects MySQL reserved keywords in column names (like `SELECT`, `FROM`, `WHERE`, `GROUP`, etc.) and handles them appropriately:
 
-- In non-interactive mode, reserved keywords are automatically prefixed with "col_" (e.g., "select" becomes "col_select")
+- In non-interactive mode, reserved keywords are automatically prefixed with `col_` (e.g., `select` becomes `col_select`)
 - In interactive mode, you'll be warned about reserved keywords and given the opportunity to provide a custom column name
 
 This prevents SQL syntax errors that would occur when using reserved words as column names.
