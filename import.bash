@@ -586,7 +586,7 @@ IGNORE 1 ROWS
 }
 
 # Function to import data into the database with a new table
-import_data_to_db() {
+create_table_and_import_data() {
     local csv_file="$1"
     local table_name="$2"
     local sql="$3"
@@ -630,10 +630,10 @@ if [ "$CREATE_TABLE" = true ]; then
     generate_create_table_sql "$1"
 
     # Import the data if not a dry run
-    if [ "$DRY_RUN" = false ]; then
-        import_data_to_db "$1" "$TABLE_NAME" "$CREATE_TABLE_SQL"
-    else
+    if [ "$DRY_RUN" = true ]; then
         echo "Dry run specified - no data imported"
+    else
+        create_table_and_import_data "$1" "$TABLE_NAME" "$CREATE_TABLE_SQL"
     fi
 else
     # Just import to an existing table
