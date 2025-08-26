@@ -104,3 +104,55 @@ The script automatically detects MySQL reserved keywords in column names (like `
 - In interactive mode, you'll be warned about reserved keywords and given the opportunity to provide a custom column name
 
 This prevents SQL syntax errors that would occur when using reserved words as column names.
+
+## Convert JSON to CSV
+
+The [`convert-json-to-csv.bash`](./convert-json-to-csv.bash) script allows you to convert JSON files to CSV format for easy importing into databases.
+
+```bash
+./convert-json-to-csv.bash [OPTIONS] input.json [output.csv]
+```
+
+### Options
+
+- `-p, --path PATH` - JSON path to extract before conversion (jq syntax)
+- `-h, --help` - Show help message
+
+### Examples
+
+Convert entire JSON file to CSV (output to stdout):
+
+```bash
+./convert-json-to-csv.bash data.json
+```
+
+Convert JSON file and save to CSV file:
+
+```bash
+./convert-json-to-csv.bash data.json output.csv
+```
+
+Extract specific data using JSON path:
+
+```bash
+./convert-json-to-csv.bash -p '.data.users' nested.json users.csv
+./convert-json-to-csv.bash --path '.results[]' api-response.json
+```
+
+This is useful when you have nested JSON and want to convert only a specific array or object within it.
+
+### JSON Path Examples
+
+- `.data.users` - Extract users array from data object
+- `.results[]` - Extract each item from results array
+- `.response.items` - Extract items from response object
+
+### Supported JSON Structures
+
+- **Array of objects**: Each object becomes a CSV row
+- **Single object**: Converted to single-row CSV
+- **Nested structures**: Use JSON paths to extract specific parts
+
+### Requirements
+
+The script requires [`jq`](https://jqlang.org) to be installed:
