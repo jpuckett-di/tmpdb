@@ -483,13 +483,6 @@ import_data_to_existing_table() {
         return 1
     fi
 
-    # Check if the db service is running
-    if ! docker compose ps | grep -q "$db_service.*running"; then
-        echo "Error: Database service '$db_service' is not running"
-        echo "Please start the service with: docker compose up -d $db_service"
-        return 1
-    fi
-
     # Check if the table exists
     echo "Checking if table exists..."
     if ! docker compose exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db -e "SHOW TABLES LIKE '$table_name'" | grep -q "$table_name"; then
@@ -598,13 +591,6 @@ create_table_and_import_data() {
     if ! command -v docker &> /dev/null; then
         echo "Error: docker command not found"
         echo "Please install Docker to use the database import feature"
-        return 1
-    fi
-
-    # Check if the db service is running
-    if ! docker compose ps | grep -q "$db_service.*running"; then
-        echo "Error: Database service '$db_service' is not running"
-        echo "Please start the service with: docker compose up -d $db_service"
         return 1
     fi
 
