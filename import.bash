@@ -42,7 +42,7 @@ is_mysql_reserved_keyword() {
 
 # Function to display usage information
 show_usage() {
-    echo "Usage: $0 [-t] [-c] [-i] [-a] [-T] [-n] <csv_file>"
+    echo "Usage: $0 [-t] [-c] [-i] [-a] [-T] [-n] [--table TABLE_NAME] <csv_file>"
     echo "Options:"
     echo "  -t    Truncate table: Clear all data from the table before importing"
     echo "  -c    Create table: Create a new table for the data (otherwise imports to existing table)"
@@ -50,6 +50,7 @@ show_usage() {
     echo "  -a    Add auto-increment ID: Adds an 'id' column as an unsigned int primary key (implies -c)"
     echo "  -T    Use TEXT: Use TEXT as the default column type instead of VARCHAR(255) (implies -c)"
     echo "  -n    Dry run: Only generate SQL, don't import data"
+    echo "  --table TABLE_NAME    Specify table name for import (skips table name prompt)"
     exit 1
 }
 
@@ -60,6 +61,30 @@ DRY_RUN=false
 CREATE_TABLE=false
 TRUNCATE_TABLE=false
 USE_TEXT=false
+SPECIFIED_TABLE_NAME=""
+
+# Parse long options first
+ARGS=()
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --table)
+            SPECIFIED_TABLE_NAME="$2"
+            shift 2
+            ;;
+        --table=*)
+            SPECIFIED_TABLE_NAME="${1#*=}"
+            shift
+            ;;
+        *)
+            ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Restore positional parameters
+set -- "${ARGS[@]}"
+
 while getopts "tciaTn" opt; do
     case $opt in
         t) TRUNCATE_TABLE=true ;;
@@ -450,15 +475,22 @@ import_to_existing_table() {
     local raw_table_name=$(basename "$csv_file" .csv)
     local db_name="db"  # Hardcoded database name
 
-    # Determine default table name
-    local default_table_name=$(echo "$raw_table_name" | tr ' -' '_' | tr -cd '[:alnum:]_')
-    if [[ ! $default_table_name =~ ^[a-zA-Z_] ]]; then
-        default_table_name="t_$default_table_name"
-    fi
+    # Use specified table name or determine default
+    local table_name
+    if [ -n "$SPECIFIED_TABLE_NAME" ]; then
+        table_name="$SPECIFIED_TABLE_NAME"
+        echo "Using specified table name: $table_name"
+    else
+        # Determine default table name
+        local default_table_name=$(echo "$raw_table_name" | tr ' -' '_' | tr -cd '[:alnum:]_')
+        if [[ ! $default_table_name =~ ^[a-zA-Z_] ]]; then
+            default_table_name="t_$default_table_name"
+        fi
 
-    # Prompt for table name
-    read -p "Table name to import data into [$default_table_name]: " table_name
-    table_name=${table_name:-$default_table_name}
+        # Prompt for table name
+        read -p "Table name to import data into [$default_table_name]: " table_name
+        table_name=${table_name:-$default_table_name}
+    fi
 
     # Import the data
     if [ "$DRY_RUN" = false ]; then

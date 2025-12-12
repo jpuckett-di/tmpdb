@@ -13,7 +13,7 @@ docker compose up -d
 The [`import.bash`](./import.bash) script allows you to easily import CSV files into MySQL tables and will create the table if needed.
 
 ```bash
-./import.bash [options] <csv_file>
+./import.bash [options] [--table TABLE_NAME] <csv_file>
 ```
 
 ### Options
@@ -24,19 +24,32 @@ The [`import.bash`](./import.bash) script allows you to easily import CSV files 
 - `-a` Add auto-increment ID: Adds an `id` column as an auto-incrementing unsigned integer primary key (implies `-c`)
 - `-T` Use `TEXT`: Use `TEXT` as the default column type instead of `VARCHAR(255)` (implies `-c`)
 - `-n` Dry run: Only generate SQL, don't import data
+- `--table TABLE_NAME` Specify table name for import (skips table name prompt)
 
 ### Examples
 
-Import a CSV file to an existing table:
+Import a CSV file to an existing table (will prompt for table name):
 
 ```bash
 ./import.bash data.csv
+```
+
+Import a CSV file to a specific table (no prompt):
+
+```bash
+./import.bash --table my_table data.csv
 ```
 
 Truncate table before importing:
 
 ```bash
 ./import.bash -t data.csv
+```
+
+Truncate a specific table before importing:
+
+```bash
+./import.bash -t --table existing_table data.csv
 ```
 
 Create a new table and import data:
@@ -77,6 +90,12 @@ Combine options:
 
 ```bash
 ./import.bash -ian data.csv
+```
+
+Dry run with specific table:
+
+```bash
+./import.bash -n --table test_table data.csv
 ```
 
 ### Interactive Mode

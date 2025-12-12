@@ -267,6 +267,27 @@ run_tests() {
 
     # Test for interactive mode with reserved keywords and custom column name
     run_test "Interactive - custom reserved keyword name" "cat $TEST_DIR/input_reserved_keywords_custom.txt | $SCRIPT_PATH -i -n $TEST_DIR/reserved_keywords.csv" 0 "my_select_column VARCHAR(255)"
+
+    # Tests for --table option
+    run_test "--table option skips prompt" "$SCRIPT_PATH -n --table my_test_table $TEST_DIR/valid.csv" 0 "Using specified table name: my_test_table"
+
+    # Test --table=value format
+    run_test "--table=value format" "$SCRIPT_PATH -n --table=custom_table $TEST_DIR/valid.csv" 0 "Using specified table name: custom_table"
+
+    # Test --table with truncate option
+    run_test "--table with truncate" "$SCRIPT_PATH -nt --table existing_table $TEST_DIR/valid.csv" 0 "Using specified table name: existing_table"
+
+    # Test --table with dry run shows would import message
+    run_test "--table dry run message" "$SCRIPT_PATH -n --table test_table $TEST_DIR/valid.csv" 0 "Dry run specified - would import to table: test_table"
+
+    # Test that --table prevents interactive prompt (should not show "Table name to import")
+    if $SCRIPT_PATH -n --table my_table "$TEST_DIR/valid.csv" 2>&1 | grep -q "Table name to import data into"; then
+        echo -e "${RED}FAILED${NC}: --table option should skip table name prompt"
+        ((TESTS_FAILED++))
+    else
+        echo -e "${GREEN}PASSED${NC}: --table option correctly skips prompt"
+        ((TESTS_PASSED++))
+    fi
 }
 
 # Main execution
