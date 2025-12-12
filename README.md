@@ -10,13 +10,20 @@ docker compose up -d
 
 ## Import CSV
 
-The [`import.bash`](./import.bash) script allows you to easily import CSV files into MySQL tables and will create the table if needed.
+The [`import.bash`](./import.bash) script allows you to easily import CSV and TSV files into MySQL tables and will create the table if needed.
 
 ```bash
-./import.bash [options] [--table TABLE_NAME] <csv_file>
+./import.bash [options] [--table TABLE_NAME] <csv_file|tsv_file>
 ```
 
 **Note**: The script can be run from any directory - it will automatically find the `docker-compose.yml` file in the project directory.
+
+### Supported File Formats
+
+- **CSV files**: Comma-separated values (`.csv` extension)
+- **TSV files**: Tab-separated values (`.tsv` extension)
+
+The script automatically detects the file format based on the extension and uses the appropriate field separator.
 
 ### Options
 
@@ -36,10 +43,22 @@ Import a CSV file to an existing table (will prompt for table name):
 ./import.bash data.csv
 ```
 
+Import a TSV file to an existing table:
+
+```bash
+./import.bash data.tsv
+```
+
 Import a CSV file to a specific table (no prompt):
 
 ```bash
 ./import.bash --table my_table data.csv
+```
+
+Import a TSV file to a specific table:
+
+```bash
+./import.bash --table my_table data.tsv
 ```
 
 Truncate table before importing:

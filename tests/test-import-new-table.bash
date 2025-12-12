@@ -153,6 +153,26 @@ create_test_files() {
     echo "select,from,where,order" > "$TEST_DIR/reserved_keywords.csv"
     echo "value1,value2,value3,value4" >> "$TEST_DIR/reserved_keywords.csv"
 
+    # TSV files for testing tab-separated values
+    echo -e "name\tage\tcity\tcountry" > "$TEST_DIR/valid.tsv"
+    echo -e "John Doe\t30\tNew York\tUSA" >> "$TEST_DIR/valid.tsv"
+    echo -e "Jane Smith\t25\tLondon\tUK" >> "$TEST_DIR/valid.tsv"
+
+    # Empty TSV file
+    touch "$TEST_DIR/empty.tsv"
+
+    # TSV file with special characters in column names
+    echo -e "first name\tlast-name\temail@address\t123numeric" > "$TEST_DIR/special_chars.tsv"
+    echo -e "John\tDoe\tjohn@example.com\t12345" >> "$TEST_DIR/special_chars.tsv"
+
+    # TSV file with numeric filename
+    echo -e "col1\tcol2" > "$TEST_DIR/123data.tsv"
+    echo -e "value1\tvalue2" >> "$TEST_DIR/123data.tsv"
+
+    # TSV file with MySQL reserved keywords as column names
+    echo -e "select\tfrom\twhere\torder" > "$TEST_DIR/reserved_keywords.tsv"
+    echo -e "value1\tvalue2\tvalue3\tvalue4" >> "$TEST_DIR/reserved_keywords.tsv"
+
     # Create input file for reserved keywords test with custom column name
     echo "reserved_keywords" > "$TEST_DIR/input_reserved_keywords_custom.txt"
     echo "my_select_column" >> "$TEST_DIR/input_reserved_keywords_custom.txt"  # Custom name for the reserved keyword column
@@ -162,13 +182,13 @@ create_test_files() {
 # Run tests
 run_tests() {
     # Test 1: No arguments provided
-    run_test "No arguments" "$SCRIPT_PATH" 1 "No CSV file provided"
+    run_test "No arguments" "$SCRIPT_PATH" 1 "No input file provided"
 
     # Test 2: Non-existent file
     run_test "Non-existent file" "$SCRIPT_PATH -n $TEST_DIR/nonexistent.csv" 1 "not found"
 
-    # Test 3: Non-CSV file
-    run_test "Non-CSV file" "$SCRIPT_PATH -n $TEST_DIR/not_csv.txt" 1 "not a CSV file"
+    # Test 3: Non-CSV/TSV file
+    run_test "Non-CSV/TSV file" "$SCRIPT_PATH -n $TEST_DIR/not_csv.txt" 1 "not a CSV or TSV file"
 
     # Test 4: Unreadable file
     run_test "Unreadable file" "$SCRIPT_PATH -n $TEST_DIR/unreadable.csv" 1 "Cannot read file"
@@ -291,6 +311,20 @@ run_tests() {
 
     # Test running script from different directory
     run_test "Run from different directory" "cd /tmp && $SCRIPT_PATH -cn $TEST_DIR/valid.csv" 0 "CREATE TABLE valid"
+
+    # TSV file tests
+    run_test "Valid TSV file" "$SCRIPT_PATH -cn $TEST_DIR/valid.tsv" 0 "TSV file check passed"
+    run_test "TSV column detection" "$SCRIPT_PATH -cn $TEST_DIR/valid.tsv" 0 "0: name"
+    run_test "TSV total columns" "$SCRIPT_PATH -cn $TEST_DIR/valid.tsv" 0 "Total columns: 4"
+    run_test "TSV SQL generation" "$SCRIPT_PATH -cn $TEST_DIR/valid.tsv" 0 "CREATE TABLE valid"
+    run_test "TSV special chars in columns" "$SCRIPT_PATH -cn $TEST_DIR/special_chars.tsv" 0 "first_name VARCHAR(255)"
+    run_test "TSV numeric filename" "$SCRIPT_PATH -cn $TEST_DIR/123data.tsv" 0 "CREATE TABLE t_123data"
+    run_test "TSV reserved keyword handling" "$SCRIPT_PATH -cn $TEST_DIR/reserved_keywords.tsv" 0 "col_select VARCHAR(255)"
+    run_test "TSV empty file" "$SCRIPT_PATH -cn $TEST_DIR/empty.tsv" 0 "Total columns: 0"
+    run_test "TSV --table option" "$SCRIPT_PATH -n --table tsv_test_table $TEST_DIR/valid.tsv" 0 "Using specified table name: tsv_test_table"
+
+    # Test file format validation
+    run_test "Invalid file extension" "$SCRIPT_PATH -cn $TEST_DIR/not_csv.txt" 1 "not a CSV or TSV file"
 }
 
 # Main execution

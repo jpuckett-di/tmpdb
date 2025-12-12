@@ -45,7 +45,7 @@ is_mysql_reserved_keyword() {
 
 # Function to display usage information
 show_usage() {
-    echo "Usage: $0 [-t] [-c] [-i] [-a] [-T] [-n] [--table TABLE_NAME] <csv_file>"
+    echo "Usage: $0 [-t] [-c] [-i] [-a] [-T] [-n] [--table TABLE_NAME] <csv_file|tsv_file>"
     echo "Options:"
     echo "  -t    Truncate table: Clear all data from the table before importing"
     echo "  -c    Create table: Create a new table for the data (otherwise imports to existing table)"
@@ -54,6 +54,10 @@ show_usage() {
     echo "  -T    Use TEXT: Use TEXT as the default column type instead of VARCHAR(255) (implies -c)"
     echo "  -n    Dry run: Only generate SQL, don't import data"
     echo "  --table TABLE_NAME    Specify table name for import (skips table name prompt)"
+    echo ""
+    echo "Supported file formats:"
+    echo "  CSV files: Comma-separated values (.csv extension)"
+    echo "  TSV files: Tab-separated values (.tsv extension)"
     exit 1
 }
 
@@ -112,11 +116,11 @@ done
 # Shift the options so that $1 refers to the first non-option argument
 shift $((OPTIND-1))
 
-# Function to check if a CSV file was provided as the first argument
-check_csv_file() {
+# Function to check if a CSV or TSV file was provided as the first argument
+check_input_file() {
     # Check if an argument was provided
     if [ $# -eq 0 ]; then
-        echo "Error: No CSV file provided"
+        echo "Error: No input file provided"
         show_usage
     fi
 
@@ -126,10 +130,10 @@ check_csv_file() {
         exit 1
     fi
 
-    # Check if the file has a .csv extension
-    if [[ "$1" != *.csv ]]; then
-        echo "Error: File '$1' is not a CSV file"
-        echo "Please provide a file with .csv extension"
+    # Check if the file has a .csv or .tsv extension
+    if [[ "$1" != *.csv && "$1" != *.tsv ]]; then
+        echo "Error: File '$1' is not a CSV or TSV file"
+        echo "Please provide a file with .csv or .tsv extension"
         exit 1
     fi
 
@@ -139,24 +143,33 @@ check_csv_file() {
         exit 1
     fi
 
-    echo "CSV file check passed: $1"
+    # Determine file type and set field separator
+    if [[ "$1" == *.tsv ]]; then
+        FIELD_SEPARATOR=$'\t'
+        FILE_TYPE="TSV"
+        echo "TSV file check passed: $1"
+    else
+        FIELD_SEPARATOR=","
+        FILE_TYPE="CSV"
+        echo "CSV file check passed: $1"
+    fi
 }
 
 # Call the function with all script arguments
-check_csv_file "$@"
+check_input_file "$@"
 
-# Function to read and display the columns of the CSV file
-read_csv_columns() {
-    local csv_file="$1"
+# Function to read and display the columns of the input file
+read_file_columns() {
+    local input_file="$1"
 
     # Read the header line to get column names
-    header=$(head -n 1 "$csv_file")
+    header=$(head -n 1 "$input_file")
 
     # Display column information
     echo "Columns detected:"
 
-    # Convert the header line to an array of column names
-    IFS=',' read -ra columns <<< "$header"
+    # Convert the header line to an array of column names using the detected separator
+    IFS="$FIELD_SEPARATOR" read -ra columns <<< "$header"
 
     # Display each column with its index
     for i in "${!columns[@]}"; do
@@ -167,11 +180,11 @@ read_csv_columns() {
     echo "Total columns: ${#columns[@]}"
 
     # Store columns array for later use
-    CSV_COLUMNS=("${columns[@]}")
+    INPUT_COLUMNS=("${columns[@]}")
 }
 
-# Read the columns from the CSV file
-read_csv_columns "$1"
+# Read the columns from the input file
+read_file_columns "$1"
 
 # Function to interactively define column properties
 define_column_properties() {
@@ -224,9 +237,9 @@ define_column_properties() {
         default_type="VARCHAR(255)"
     fi
 
-    for i in "${!CSV_COLUMNS[@]}"; do
+    for i in "${!INPUT_COLUMNS[@]}"; do
         # Clean column name
-        local column_name=$(echo "${CSV_COLUMNS[$i]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
+        local column_name=$(echo "${INPUT_COLUMNS[$i]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
 
         # If column name is empty or doesn't start with a letter or underscore, prepend 'c_'
         if [[ -z $column_name || ! $column_name =~ ^[a-zA-Z_] ]]; then
@@ -345,11 +358,11 @@ define_column_properties() {
         echo ""
 
         # Pre-populate remaining columns with defaults if user chose to use defaults
-        if [ "$USE_DEFAULTS" = true ] && [ $i -lt $((${#CSV_COLUMNS[@]} - 1)) ]; then
+        if [ "$USE_DEFAULTS" = true ] && [ $i -lt $((${#INPUT_COLUMNS[@]} - 1)) ]; then
             echo "Pre-populating remaining columns with defaults"
-            for j in $(seq $((i + 1)) $((${#CSV_COLUMNS[@]} - 1))); do
+            for j in $(seq $((i + 1)) $((${#INPUT_COLUMNS[@]} - 1))); do
                 # Clean column name
-                local next_col_name=$(echo "${CSV_COLUMNS[$j]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
+                local next_col_name=$(echo "${INPUT_COLUMNS[$j]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
 
                 # If column name is empty or doesn't start with a letter or underscore, prepend 'c_'
                 if [[ -z $next_col_name || ! $next_col_name =~ ^[a-zA-Z_] ]]; then
@@ -416,14 +429,14 @@ generate_create_table_sql() {
     fi
 
     # Add columns with their data types and constraints
-    for i in "${!CSV_COLUMNS[@]}"; do
+    for i in "${!INPUT_COLUMNS[@]}"; do
         # Use the stored column name if available from interactive mode
         local column_name
         if [ "$INTERACTIVE" = true ] && [ ${#COLUMN_NAMES[@]} -gt 0 ]; then
             column_name="${COLUMN_NAMES[$i]}"
         else
             # Clean column name (replace spaces with underscores and remove special characters)
-            column_name=$(echo "${CSV_COLUMNS[$i]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
+            column_name=$(echo "${INPUT_COLUMNS[$i]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
 
             # If column name is empty or doesn't start with a letter or underscore, prepend 'c_'
             if [[ -z $column_name || ! $column_name =~ ^[a-zA-Z_] ]]; then
@@ -547,14 +560,14 @@ import_data_to_existing_table() {
     # Create the LOAD DATA INFILE command with empty string to NULL conversion
     local load_data_cmd="LOAD DATA LOCAL INFILE '$container_csv_path'
 INTO TABLE $table_name
-FIELDS TERMINATED BY ','
+FIELDS TERMINATED BY '$FIELD_SEPARATOR'
 OPTIONALLY ENCLOSED BY '\"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS
 ("
 
     # Get the number of columns
-    local num_columns=${#CSV_COLUMNS[@]}
+    local num_columns=${#INPUT_COLUMNS[@]}
 
     # Dynamically generate the column variables
     for i in $(seq 1 $num_columns); do
@@ -578,7 +591,7 @@ IGNORE 1 ROWS
             col_name="${COLUMN_NAMES[$((i-1))]}"
         else
             # Clean column name
-            col_name=$(echo "${CSV_COLUMNS[$((i-1))]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
+            col_name=$(echo "${INPUT_COLUMNS[$((i-1))]}" | tr ' ' '_' | tr -cd '[:alnum:]_')
 
             # If column name is empty or doesn't start with a letter or underscore, prepend 'c_'
             if [[ -z $col_name || ! $col_name =~ ^[a-zA-Z_] ]]; then
