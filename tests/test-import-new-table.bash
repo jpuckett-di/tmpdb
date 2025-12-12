@@ -288,6 +288,9 @@ run_tests() {
         echo -e "${GREEN}PASSED${NC}: --table option correctly skips prompt"
         ((TESTS_PASSED++))
     fi
+
+    # Test running script from different directory
+    run_test "Run from different directory" "cd /tmp && $SCRIPT_PATH -cn $TEST_DIR/valid.csv" 0 "CREATE TABLE valid"
 }
 
 # Main execution

@@ -16,6 +16,8 @@ The [`import.bash`](./import.bash) script allows you to easily import CSV files 
 ./import.bash [options] [--table TABLE_NAME] <csv_file>
 ```
 
+**Note**: The script can be run from any directory - it will automatically find the `docker-compose.yml` file in the project directory.
+
 ### Options
 
 - `-t` Truncate table: Clear all data from the table before importing
@@ -96,6 +98,12 @@ Dry run with specific table:
 
 ```bash
 ./import.bash -n --table test_table data.csv
+```
+
+Run from any directory using absolute path:
+
+```bash
+/path/to/tmpdb/import.bash -c data.csv
 ```
 
 ### Interactive Mode

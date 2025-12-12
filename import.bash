@@ -2,6 +2,9 @@
 
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Move MYSQL_RESERVED_KEYWORDS to the top level of the script, before any functions
 # Define common MySQL reserved keywords at the top of the script, before any functions
 MYSQL_RESERVED_KEYWORDS=("ADD" "ALL" "ALTER" "ANALYZE" "AND" "AS" "ASC" "ASENSITIVE"
@@ -517,7 +520,7 @@ import_data_to_existing_table() {
 
     # Check if the table exists
     echo "Checking if table exists..."
-    if ! docker compose exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db -e "SHOW TABLES LIKE '$table_name'" | grep -q "$table_name"; then
+    if ! docker compose -f "$SCRIPT_DIR/docker-compose.yml" exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db -e "SHOW TABLES LIKE '$table_name'" | grep -q "$table_name"; then
         echo "Error: Table '$table_name' does not exist"
         echo "Use the -c option to create a new table"
         return 1
@@ -526,7 +529,7 @@ import_data_to_existing_table() {
     # Truncate the table if requested
     if [ "$TRUNCATE_TABLE" = true ]; then
         echo "Truncating table before import..."
-        if ! docker compose exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db -e "TRUNCATE TABLE $table_name"; then
+        if ! docker compose -f "$SCRIPT_DIR/docker-compose.yml" exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db -e "TRUNCATE TABLE $table_name"; then
             echo "Error: Failed to truncate table"
             return 1
         fi
@@ -539,7 +542,7 @@ import_data_to_existing_table() {
 
     # Copy the CSV file to the container
     echo "Copying CSV file to container..."
-    docker compose cp "$abs_csv_path" "$db_service:$container_csv_path"
+    docker compose -f "$SCRIPT_DIR/docker-compose.yml" cp "$abs_csv_path" "$db_service:$container_csv_path"
 
     # Create the LOAD DATA INFILE command with empty string to NULL conversion
     local load_data_cmd="LOAD DATA LOCAL INFILE '$container_csv_path'
@@ -601,7 +604,7 @@ IGNORE 1 ROWS
 
     # Import the data
     echo "Importing data from CSV file..."
-    if ! echo "$load_data_cmd" | docker compose exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db --local-infile=1; then
+    if ! echo "$load_data_cmd" | docker compose -f "$SCRIPT_DIR/docker-compose.yml" exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db --local-infile=1; then
         echo "Error: Failed to import data from CSV file"
         return 1
     fi
@@ -628,7 +631,7 @@ create_table_and_import_data() {
 
     # Create the table using the SQL
     echo "Creating table using SQL command"
-    if ! echo -e "$sql" | docker compose exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db; then
+    if ! echo -e "$sql" | docker compose -f "$SCRIPT_DIR/docker-compose.yml" exec -T $db_service mysql -u root -p"${MYSQL_ROOT_PASSWORD:-password}" -D db; then
         echo "Error: Failed to create table using SQL command"
         return 1
     fi
