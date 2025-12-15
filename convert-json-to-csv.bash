@@ -74,19 +74,19 @@ done
 
 # Check if required arguments are provided
 if [ -z "$INPUT_FILE" ]; then
-    echo "Error: Input file is required"
+    echo "Error: Input file is required" >&2
     show_usage
 fi
 
 # Check if input file exists
 if [ ! -f "$INPUT_FILE" ]; then
-    echo "Error: Input file '$INPUT_FILE' does not exist."
+    echo "Error: Input file '$INPUT_FILE' does not exist." >&2
     exit 1
 fi
 
 # Check if input file is readable
 if [ ! -r "$INPUT_FILE" ]; then
-    echo "Error: Input file '$INPUT_FILE' is not readable."
+    echo "Error: Input file '$INPUT_FILE' is not readable." >&2
     exit 1
 fi
 
