@@ -151,6 +151,41 @@ The script automatically detects MySQL reserved keywords in column names (like `
 
 This prevents SQL syntax errors that would occur when using reserved words as column names.
 
+## Execute SQL Files
+
+The [`execute.bash`](./execute.bash) script allows you to execute SQL files directly against the database.
+
+```bash
+./execute.bash [options] <sql_file>
+```
+
+### Options
+
+- `-n` Dry run: Show the SQL content without executing
+- `-h, --help` Show help message
+
+### Examples
+
+Execute a SQL file:
+
+```bash
+./execute.bash queries/my_query.sql
+```
+
+Preview SQL without executing (dry run):
+
+```bash
+./execute.bash -n schema.sql
+```
+
+Run from any directory using absolute path:
+
+```bash
+/path/to/tmpdb/execute.bash /path/to/script.sql
+```
+
+**Note**: The script can be run from any directory - it will automatically find the `docker-compose.yml` file in the project directory.
+
 ## Convert JSON to CSV
 
 The [`convert-json-to-csv.bash`](./convert-json-to-csv.bash) script allows you to convert JSON files to CSV format for easy importing into databases.
