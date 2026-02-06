@@ -138,32 +138,39 @@ convert_json_to_csv() {
             exit 1
         fi
 
-        # Extract headers from the first object
-        local headers=$(echo "$extracted_json" | jq -r '.[0] | keys_unsorted | @csv')
+        # Extract ALL unique keys from ALL objects in the array and sort them
+        # This handles objects with varying properties and different key orders
+        local all_keys=$(echo "$extracted_json" | jq -r '[.[] | keys] | flatten | unique | sort | @csv')
+        
+        # Create the sorted key array for consistent column order
+        local sorted_keys_array=$(echo "$extracted_json" | jq -r '[.[] | keys] | flatten | unique | sort')
 
-        # Convert to CSV
+        # Convert to CSV with consistent column order
         if [ -n "$output_file" ]; then
             {
-                echo "$headers"
-                echo "$extracted_json" | jq -r '.[] | [.[] | tostring] | @csv'
+                echo "$all_keys"
+                # For each object, extract values in the order of sorted keys, using empty string for missing properties
+                echo "$extracted_json" | jq -r --argjson keys "$sorted_keys_array" '.[] as $obj | $keys | map(. as $key | if ($obj | has($key)) then $obj[$key] | if . == null then "" else tostring end else "" end) | @csv'
             } > "$output_file"
         else
-            echo "$headers"
-            echo "$extracted_json" | jq -r '.[] | [.[] | tostring] | @csv'
+            echo "$all_keys"
+            # For each object, extract values in the order of sorted keys, using empty string for missing properties
+            echo "$extracted_json" | jq -r --argjson keys "$sorted_keys_array" '.[] as $obj | $keys | map(. as $key | if ($obj | has($key)) then $obj[$key] | if . == null then "" else tostring end else "" end) | @csv'
         fi
 
     elif [ "$json_type" = "object" ]; then
-        # Handle single object - convert to single row CSV
-        local headers=$(echo "$extracted_json" | jq -r 'keys_unsorted | @csv')
-        local values=$(echo "$extracted_json" | jq -r '[.[] | tostring] | @csv')
+        # Handle single object - convert to single row CSV with sorted keys
+        local sorted_keys=$(echo "$extracted_json" | jq -r 'keys | sort | @csv')
+        local sorted_keys_array=$(echo "$extracted_json" | jq -r 'keys | sort')
+        local values=$(echo "$extracted_json" | jq -r --argjson keys "$sorted_keys_array" '. as $obj | $keys | map(. as $key | if ($obj | has($key)) then $obj[$key] | if . == null then "" else tostring end else "" end) | @csv')
 
         if [ -n "$output_file" ]; then
             {
-                echo "$headers"
+                echo "$sorted_keys"
                 echo "$values"
             } > "$output_file"
         else
-            echo "$headers"
+            echo "$sorted_keys"
             echo "$values"
         fi
 

@@ -234,6 +234,62 @@ This is useful when you have nested JSON and want to convert only a specific arr
 - **Single object**: Converted to single-row CSV
 - **Nested structures**: Use JSON paths to extract specific parts
 
+#### Handling Objects with Varying Properties
+
+The script intelligently handles JSON arrays where objects have different properties or properties in different orders:
+
+**Different Property Orders:**
+```json
+[
+    {"name": "John", "age": 30, "city": "NYC"},
+    {"city": "LA", "name": "Jane", "age": 25},
+    {"age": 35, "city": "Chicago", "name": "Bob"}
+]
+```
+
+**Missing Properties:**
+```json
+[
+    {"name": "Alice", "age": 28, "department": "HR"},
+    {"name": "Bob", "city": "Boston"},
+    {"age": 30, "city": "Denver", "name": "Carol", "country": "USA"}
+]
+```
+
+**Completely Different Property Sets:**
+```json
+[
+    {"id": 1, "product": "Laptop", "price": 999},
+    {"name": "John", "role": "Manager"},
+    {"category": "Electronics", "stock": 50, "supplier": "TechCorp"}
+]
+```
+
+The script automatically:
+1. **Discovers all unique properties** across all objects in the array
+2. **Sorts property names alphabetically** for consistent column ordering
+3. **Fills missing properties** with empty strings to maintain CSV structure
+4. **Preserves data types** (numbers, booleans, strings) while handling null values appropriately
+
+This ensures that the resulting CSV has consistent columns and properly aligned data, regardless of the input JSON structure variations.
+
+### Testing
+
+The script includes comprehensive unit tests covering various scenarios including objects with varying properties:
+
+```bash
+./tests/test-convert-json-to-csv.bash
+```
+
+Test coverage includes:
+- Objects with properties in different orders
+- Objects with missing properties  
+- Objects with completely different property sets
+- Nested objects and arrays
+- Various data types (strings, numbers, booleans, null)
+- Unicode and special characters
+- Error handling and edge cases
+
 ### Requirements
 
 The script requires [`jq`](https://jqlang.org) to be installed:
