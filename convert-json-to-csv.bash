@@ -104,9 +104,17 @@ convert_json_to_csv() {
         jq_filter="."
     fi
 
-    # Extract the relevant JSON data using the specified path
+    # Extract the relevant JSON data using the specified path.
+    # After extraction, strip characters from all string values that would break
+    # the JSON-in-CSV-in-MySQL pipeline:
+    #   - Control characters (\t \n \r) cause MySQL "Invalid encoding in string"
+    #   - Double quotes cause "Missing a comma or '}'" because MySQL's LOAD DATA
+    #     INFILE treats \ as an escape character, so \" in JSON (an escaped quote)
+    #     collides with CSV quote-doubling and corrupts the JSON structure
+    #   - Backslashes for the same reason: \\ in JSON is interpreted by MySQL's
+    #     CSV reader as a single \, corrupting JSON escape sequences
     local extracted_json
-    extracted_json=$(jq "$jq_filter" "$input_file" 2>/dev/null)
+    extracted_json=$(jq "$jq_filter" "$input_file" 2>/dev/null | jq 'walk(if type == "string" then gsub("[\\t\\n\\r\"\\\\]"; "") else . end)')
     local jq_exit_code=$?
 
     if [ $jq_exit_code -ne 0 ]; then

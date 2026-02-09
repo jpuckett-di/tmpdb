@@ -240,6 +240,78 @@ run_tests() {
     
     run_test "JSON path with varying properties" "$SCRIPT_PATH -p '.users' $TEST_DIR/path_extraction.json" 0 "$TEST_DIR/path_extraction_expected.txt"
 
+    # Control character stripping tests
+    echo "Testing control character stripping..."
+
+    # Test with the dealers.test.json fixture (contains \t in strings and nested JSON)
+    echo '"created_at","email","email_verified","family_name","given_name","identities","name","nickname","updated_at","user_id"
+"2022-02-02T22:40:55.858Z","blah@example.com","false","Example","Fawaz","[{""profileData"":{""email"":""blah@example.com"",""family_name"":""Example"",""given_name"":""Fawaz"",""name"":""Fawaz Example"",""email_verified"":false},""connection"":""APP-USERS"",""user_id"":""1234123412341234"",""provider"":""auth0"",""isSocial"":false}]","Fawaz Example","ex","2022-02-02T22:40:55.858Z","auth0|1234123412341234"' > "$TEST_DIR/dealers_expected.txt"
+
+    run_test "Control chars stripped from fixture" "$SCRIPT_PATH $PROJECT_ROOT/tests/fixtures/dealers.test.json" 0 "$TEST_DIR/dealers_expected.txt"
+
+    # Test: tabs stripped from simple strings
+    echo '[{"name": "Hello\tWorld", "value": 1}]' > "$TEST_DIR/tab_simple.json"
+    echo '"name","value"
+"HelloWorld","1"' > "$TEST_DIR/tab_simple_expected.txt"
+    run_test "Tabs stripped from simple strings" "$SCRIPT_PATH $TEST_DIR/tab_simple.json" 0 "$TEST_DIR/tab_simple_expected.txt"
+
+    # Test: tabs stripped from nested JSON values
+    echo '[{"id": 1, "meta": {"desc": "has\ttab"}}]' > "$TEST_DIR/tab_nested.json"
+    echo '"id","meta"
+"1","{""desc"":""hastab""}"' > "$TEST_DIR/tab_nested_expected.txt"
+    run_test "Tabs stripped from nested JSON" "$SCRIPT_PATH $TEST_DIR/tab_nested.json" 0 "$TEST_DIR/tab_nested_expected.txt"
+
+    # Test: newlines stripped from strings
+    echo '[{"msg": "line1\nline2"}]' > "$TEST_DIR/newline.json"
+    echo '"msg"
+"line1line2"' > "$TEST_DIR/newline_expected.txt"
+    run_test "Newlines stripped from strings" "$SCRIPT_PATH $TEST_DIR/newline.json" 0 "$TEST_DIR/newline_expected.txt"
+
+    # Test: carriage returns stripped
+    echo '[{"msg": "before\rafter"}]' > "$TEST_DIR/cr.json"
+    echo '"msg"
+"beforeafter"' > "$TEST_DIR/cr_expected.txt"
+    run_test "Carriage returns stripped" "$SCRIPT_PATH $TEST_DIR/cr.json" 0 "$TEST_DIR/cr_expected.txt"
+
+    # Test: double quotes stripped from nested JSON string values
+    echo '[{"id": 1, "meta": [{"name": "Chris \"Bones\" Smith"}]}]' > "$TEST_DIR/quotes_nested.json"
+    echo '"id","meta"
+"1","[{""name"":""Chris Bones Smith""}]"' > "$TEST_DIR/quotes_nested_expected.txt"
+    run_test "Quotes stripped from nested JSON strings" "$SCRIPT_PATH $TEST_DIR/quotes_nested.json" 0 "$TEST_DIR/quotes_nested_expected.txt"
+
+    # Test: backslashes stripped from nested JSON string values
+    echo '[{"id": 1, "meta": [{"path": "C:\\Users\\test"}]}]' > "$TEST_DIR/backslash_nested.json"
+    echo '"id","meta"
+"1","[{""path"":""C:Userstest""}]"' > "$TEST_DIR/backslash_nested_expected.txt"
+    run_test "Backslashes stripped from nested JSON strings" "$SCRIPT_PATH $TEST_DIR/backslash_nested.json" 0 "$TEST_DIR/backslash_nested_expected.txt"
+
+    # Test: no false positives -- normal strings are untouched
+    echo '[{"name": "Normal String", "url": "https://example.com/path?q=1&r=2"}]' > "$TEST_DIR/normal.json"
+    echo '"name","url"
+"Normal String","https://example.com/path?q=1&r=2"' > "$TEST_DIR/normal_expected.txt"
+    run_test "Normal strings untouched" "$SCRIPT_PATH $TEST_DIR/normal.json" 0 "$TEST_DIR/normal_expected.txt"
+
+    # Test: embedded JSON in identities column is valid JSON after stripping
+    # (This is the key test -- the JSON-in-CSV must be parseable as JSON)
+    echo -n "Testing embedded JSON validity... "
+    local json_col=$($SCRIPT_PATH "$PROJECT_ROOT/tests/fixtures/dealers.test.json" | python3 -c "
+import csv, json, sys
+reader = csv.reader(sys.stdin)
+header = next(reader)
+row = next(reader)
+idx = header.index('identities')
+json.loads(row[idx])
+print('valid')
+" 2>&1)
+    if [ "$json_col" = "valid" ]; then
+        echo -e "${GREEN}PASSED${NC}"
+        ((TESTS_PASSED++))
+    else
+        echo -e "${RED}FAILED${NC}"
+        echo "  Embedded JSON is not valid: $json_col"
+        ((TESTS_FAILED++))
+    fi
+
     # Error cases
     echo "Testing error cases..."
     run_test "Empty array" "$SCRIPT_PATH -p '.[]' <(echo '[]')" 1 ""

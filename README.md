@@ -270,8 +270,9 @@ The script automatically:
 2. **Sorts property names alphabetically** for consistent column ordering
 3. **Fills missing properties** with empty strings to maintain CSV structure
 4. **Preserves data types** (numbers, booleans, strings) while handling null values appropriately
+5. **Strips control characters** (tabs, newlines, carriage returns) from all string values to ensure MySQL compatibility
 
-This ensures that the resulting CSV has consistent columns and properly aligned data, regardless of the input JSON structure variations.
+This ensures that the resulting CSV has consistent columns and properly aligned data, regardless of the input JSON structure variations. Control character stripping happens early in the pipeline -- before any CSV conversion -- so both simple string columns and embedded JSON columns are clean. This prevents MySQL `"Invalid encoding in string"` errors when importing CSV data that contains JSON columns.
 
 ### Testing
 
@@ -288,6 +289,8 @@ Test coverage includes:
 - Nested objects and arrays
 - Various data types (strings, numbers, booleans, null)
 - Unicode and special characters
+- Control character stripping (tabs, newlines, carriage returns)
+- Embedded JSON validity after stripping
 - Error handling and edge cases
 
 ### Requirements
